@@ -73,3 +73,23 @@ test("verification cannot leak from another version", () => {
   assert.equal(evidenceFor(p, "2").length, 0);
   assert.equal(evidenceFor(p, "1").length, 1);
 });
+
+test("curated records require sources, valid categories and safe entry associations", async () => {
+  const { default: info } = await import("../src/package-info.json", { with: { type: "json" } });
+  const { categories, kindLabels } = await import("../src/catalog.mjs");
+  for (const [name, record] of Object.entries(info)) {
+    assert.ok(kindLabels[record.kind], name);
+    assert.ok(categories[record.category], name);
+    assert.ok(record.sources.length, name);
+    for (const source of record.sources) assert.ok(source.url.startsWith("https://"), name);
+    if (record.entry) {
+      assert.equal(record.kind, "platform");
+      assert.equal(info[record.entry.replace("@ohos-npm-ports/", "")].kind, "entry");
+    }
+    for (const v of record.verification)
+      assert.equal(evidenceFor(record, v.version).includes(v), true);
+  }
+});
+test("malformed percent encoded paths fall back safely", () => {
+  assert.equal(readRoute("https://example.org/packages/%ZZ/").package, "");
+});

@@ -130,6 +130,17 @@ export function createRegistryClient({ fetcher = fetch, now = Date.now, storage 
     });
   }
   return {
+    invalidate(name) {
+      for (const mode of ["full", "compact"]) {
+        const key = `ohos-npm-registry-v1:${mode}:${name}`;
+        memory.delete(key);
+        try {
+          storage?.removeItem(key);
+        } catch {
+          /* optional storage */
+        }
+      }
+    },
     async fetchPackage(source, { full = false, force = false } = {}) {
       const key = `ohos-npm-registry-v1:${full ? "full" : "compact"}:${source.name}`;
       const merge = (result) => ({

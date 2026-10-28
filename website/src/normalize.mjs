@@ -1,4 +1,17 @@
 import { enrichPackage } from "./catalog.mjs";
+function runtimeOf(manifest) {
+  return (
+    Object.entries(manifest?.engines || {})
+      .filter(([name, value]) => ["node", "bun"].includes(name) && typeof value === "string")
+      .map(([name, value]) => `${name === "node" ? "Node" : "Bun"} ${value}`)
+      .join(" / ") || null
+  );
+}
+function cpuOf(manifest) {
+  return Array.isArray(manifest?.cpu)
+    ? manifest.cpu.filter((v) => typeof v === "string").join(" / ") || null
+    : null;
+}
 export function normalizePackage(metadata, source = {}) {
   const version = metadata["dist-tags"]?.latest ?? null;
   const current = metadata.versions?.[version] ?? {};
@@ -29,6 +42,9 @@ export function normalizePackage(metadata, source = {}) {
     description:
       current.description || metadata.description || source.description || "暂无包描述。",
     version,
+    runtime: runtimeOf(current) || (version === source.version ? (source.runtime ?? null) : null),
+    architecture:
+      cpuOf(current) || (version === source.version ? (source.architecture ?? null) : null),
     deprecated,
     status: deprecated ? "deprecated" : version ? "active" : "untagged",
     license: typeof current.license === "string" ? current.license : (source.license ?? null),
@@ -38,6 +54,18 @@ export function normalizePackage(metadata, source = {}) {
     versions: Object.keys(metadata.versions ?? {})
       .map((v) => ({
         version: v,
+        runtime:
+          runtimeOf(metadata.versions[v]) ||
+          source.versions?.find((item) => item.version === v)?.runtime ||
+          null,
+        architecture:
+          cpuOf(metadata.versions[v]) ||
+          source.versions?.find((item) => item.version === v)?.architecture ||
+          null,
+        publishedAt:
+          metadata.time?.[v] ||
+          source.versions?.find((item) => item.version === v)?.publishedAt ||
+          null,
         tags: Object.keys(metadata["dist-tags"] ?? {}).filter(
           (t) => metadata["dist-tags"][t] === v,
         ),

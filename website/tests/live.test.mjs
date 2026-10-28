@@ -258,3 +258,26 @@ test("corrupt or inaccessible persistent cache never blocks network requests", a
     assert.equal((await client.fetchPackage(pkg)).version, "2");
   }
 });
+
+test("manual catalog invalidation also removes full detail cache", async () => {
+  const { createRegistryClient } = await import("../src/registry.mjs");
+  const saved = new Map();
+  let calls = 0;
+  const storage = {
+    getItem: (key) => saved.get(key),
+    setItem: (key, value) => saved.set(key, value),
+    removeItem: (key) => saved.delete(key),
+  };
+  const client = createRegistryClient({
+    storage,
+    fetcher: async () => {
+      calls++;
+      return packument(pkg.name, "2");
+    },
+  });
+  await client.fetchPackage(pkg, { full: true });
+  client.invalidate(pkg.name);
+  await client.fetchPackage(pkg, { full: true });
+  assert.equal(calls, 2);
+  assert.equal(saved.size, 1);
+});

@@ -533,3 +533,18 @@ test("static home and package pages remain usable without JavaScript", async ({
     await context.close();
   }
 });
+
+test("queued dialog close events cannot dismiss a newly restored forward entry", async ({
+  page,
+}) => {
+  await fixture(page);
+  await page.getByLabel("查看 tool-00 包详情").click();
+  for (let i = 0; i < 4; i++) {
+    await page.goBack();
+    await expect(page.getByLabel("查看 tool-00 包详情")).toBeFocused();
+    await page.goForward();
+    await expect(page.getByRole("dialog")).toBeVisible();
+    await expect(page.locator("#detail-title")).toHaveText("tool-00");
+    await expect(page).toHaveURL((url) => url.searchParams.get("package") === fixtures[0].name);
+  }
+});

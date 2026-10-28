@@ -69,7 +69,9 @@ export function installGuide(
     return {
       file: "终端",
       code: `${manager === "npm" ? "npm install" : `${manager} add`} ${pkg.upstream ? `${pkg.upstream}@npm:` : ""}${spec}`,
-      note: "在项目目录执行；npm alias 保留原来的 import 名称。",
+      note: pkg.upstream
+        ? "在项目目录执行；npm alias 保留原来的 import 名称。"
+        : "尚未确认上游映射；此命令安装 scope 包本身，不保证保留原来的 import 名称。",
     };
   if (!pkg.upstream)
     return { file: null, code: null, note: "尚未确认上游包名，不生成猜测的 overrides。" };

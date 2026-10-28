@@ -40,6 +40,7 @@ const version = ref(initial.version),
   manager = ref(initial.manager),
   dependency = ref(initial.dependency);
 const menuOpen = ref(false);
+let ignoredCloseEvents = 0;
 let detailRequest = 0,
   timer,
   versionChanged = false,
@@ -65,6 +66,9 @@ const guide = computed(() =>
     : {},
 );
 const code = computed(() => guide.value.code);
+const versionInfo = computed(() =>
+  selected.value?.versions.find((v) => v.version === version.value),
+);
 const deprecated = computed(
   () => selected.value?.versions.find((v) => v.version === version.value)?.deprecated,
 );
@@ -140,6 +144,7 @@ function clear() {
 }
 async function refresh(force = false) {
   if (refreshing.value) return;
+  if (force) for (const pkg of packages.value) registry.invalidate(pkg.name);
   refreshing.value = true;
   liveMessage.value = "正在查询 npm registry…";
   const visible = [...document.querySelectorAll(".package-row")]
@@ -256,6 +261,26 @@ async function openDetail(pkg, { navigation = true, route } = {}) {
     if (request === detailRequest) detailMessage.value = "实时查询失败，当前显示原有版本信息。";
   }
 }
+function openEntry(event, name) {
+  const pkg = packages.value.find((p) => p.name === name);
+  if (pkg) {
+    event.preventDefault();
+    void openDetail(pkg);
+  }
+}
+function closeDialog() {
+  if (dialog.value.open) {
+    ignoredCloseEvents++;
+    dialog.value.close();
+  }
+}
+function onDialogClosed() {
+  if (ignoredCloseEvents > 0) {
+    ignoredCloseEvents--;
+    return;
+  }
+  closeDetail();
+}
 function closeDetail() {
   if (!selected.value) return;
   if (history.state?.catalogModal) {
@@ -264,7 +289,7 @@ function closeDetail() {
   }
   detailRequest++;
   selected.value = null;
-  if (dialog.value.open) dialog.value.close();
+  closeDialog();
   history.replaceState(null, "", routeUrl(routeState(null), base));
 }
 async function restoreRoute() {
@@ -282,7 +307,7 @@ async function restoreRoute() {
   else {
     detailRequest++;
     selected.value = null;
-    if (dialog.value.open) dialog.value.close();
+    closeDialog();
     await nextTick();
     if (history.state?.focus)
       [...document.querySelectorAll(".package-name")]
@@ -625,7 +650,7 @@ onUnmounted(() => {
     ref="dialog"
     id="detail"
     aria-labelledby="detail-title"
-    @close="closeDetail"
+    @close="onDialogClosed"
     @cancel.prevent="closeDetail"
   >
     <template v-if="selected">
@@ -670,7 +695,9 @@ onUnmounted(() => {
         <h3>兼容性与限制</h3>
         <p>{{ kindLabels[selected.kind] }} · 发布状态：{{ labels[selected.status] }}</p>
         <p>
-          运行时：{{ selected.runtime || "未记录" }} · 架构：{{ selected.architecture || "未记录" }}
+          包声明的运行时：{{ selected.runtime || "未记录" }} · CPU：{{
+            selected.architecture || "未记录"
+          }}
         </p>
         <p v-if="!verification.length">
           所选版本的真机验证：未记录。npm 发布和网站 CI 不代表真机验收通过。
@@ -694,7 +721,7 @@ onUnmounted(() => {
         <a
           v-if="selected.entry"
           :href="routeUrl({ package: selected.entry }, base).href"
-          @click.prevent="openDetail(packages.find((p) => p.name === selected.entry))"
+          @click="openEntry($event, selected.entry)"
           >查看对应入口包 → {{ selected.entry }}</a
         >
       </p>
