@@ -20,13 +20,17 @@
   [npm 文档](https://docs.npmjs.com/cli/v11/configuring-npm/package-json/#overrides)、[Bun 文档](https://bun.sh/docs/pm/overrides)。
 - pnpm 的 overrides 写在根 `pnpm-workspace.yaml`：
   [pnpm 文档](https://pnpm.io/settings#overrides)。
-- 配置只用于间接依赖；已有直接依赖用 alias，不生成会触发 npm EOVERRIDE 的混合配置。
+- overrides 用于间接依赖；直接依赖使用 alias 命令或 dependencies 配置，不生成会触发 npm EOVERRIDE 的混合配置。
 
 ## 静态页面和缓存
 
-构建插件以同一包数据、安装生成器输出首页和 `packages/<shortName>/index.html`，无 JavaScript 可读。启用 JavaScript 后由 Vue 增强为交互目录。兼容旧 `?package=` 链接；版本、包管理器、依赖类型、搜索和发布状态保存在查询参数。旧 kind/category 参数忽略，不应用隐藏筛选；新生成的链接会移除它们。
+构建插件以同一包数据、安装生成器输出首页和 `packages/<shortName>/index.html`，无 JavaScript 可读。启用 JavaScript 后由 Vue 增强为交互目录。兼容旧 `?package=` 链接；版本、包管理器、接入方式、搜索和发布状态保存在查询参数。旧 kind/category 参数忽略，不应用隐藏筛选；新生成的链接会移除它们。
 
-交互详情和静态详情都以安装指引为主，兼容性、来源及签名排错默认折叠。废弃、平台安装提醒和有证据的已知限制直接显示，不能随普通元信息一起隐藏。
+交互详情和静态详情仅围绕配置和复制，保留废弃、平台安装提醒和有证据的已知限制。配置相同则共用展示：dependencies 对三个包管理器只生成一份；overrides 的 npm/bun 共用 JSON，pnpm 使用 YAML；alias 按命令分别展示。页签中的 bun 一律小写。
+
+目录中的移植包在发布前签名，消费说明不再要求额外安装 ohos-signpost 或添加 postinstall。网站工程自身开发依赖的 postinstall 不受影响。
+
+旧 dependency=direct/indirect 分享链接分别映射为 mode=alias/overrides；新链接只保存 mode。
 
 `SITE_ORIGIN` 可覆盖 canonical 来源，默认按 `GITHUB_REPOSITORY` 的 owner 生成 GitHub Pages 域名；路径由现有 `pagesBase` 统一决定。构建同时产生 sitemap 和 robots。
 
