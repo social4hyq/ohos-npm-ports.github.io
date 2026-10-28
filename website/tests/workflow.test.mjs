@@ -14,11 +14,13 @@ function canDeploy({
   ref = "refs/heads/main",
   result = "success",
   cancelled = false,
+  enabled = "",
 } = {}) {
   assert.ok(condition, "deploy must have an explicit job condition");
   return runInNewContext(condition, {
     github: { repository, event_name: event, ref },
     needs: { build: { result } },
+    vars: { ENABLE_PAGES_DEPLOY: enabled },
     cancelled: () => cancelled,
   });
 }
@@ -39,4 +41,20 @@ test("PRs, other branches, failed builds and cancelled runs never deploy", () =>
     { cancelled: true },
   ])
     assert.equal(canDeploy(options), false);
+});
+
+test("explicitly enabled forks deploy, but still enforce deployment safety guards", () => {
+  const repository = "social4hyq/ohos-npm-ports.github.io";
+  for (const event of ["push", "workflow_dispatch", "schedule", "repository_dispatch"])
+    assert.equal(canDeploy({ repository, enabled: "true", event }), true);
+  for (const enabled of ["", "false", "TRUE"])
+    assert.equal(canDeploy({ repository, enabled }), false);
+  for (const options of [
+    { event: "pull_request" },
+    { ref: "refs/heads/feature" },
+    { result: "failure" },
+    { result: "skipped" },
+    { cancelled: true },
+  ])
+    assert.equal(canDeploy({ repository, enabled: "true", ...options }), false);
 });

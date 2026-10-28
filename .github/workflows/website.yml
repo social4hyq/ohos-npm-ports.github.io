@@ -80,7 +80,7 @@ jobs:
         with:
           path: website/dist
   deploy:
-    if: ${{ !cancelled() && github.repository == 'ohos-npm-ports/ohos-npm-ports.github.io' && needs.build.result == 'success' && github.event_name != 'pull_request' && github.ref == 'refs/heads/main' }}
+    if: ${{ !cancelled() && (github.repository == 'ohos-npm-ports/ohos-npm-ports.github.io' || vars.ENABLE_PAGES_DEPLOY == 'true') && needs.build.result == 'success' && github.event_name != 'pull_request' && github.ref == 'refs/heads/main' }}
     needs: build
     runs-on: ubuntu-latest
     permissions:
