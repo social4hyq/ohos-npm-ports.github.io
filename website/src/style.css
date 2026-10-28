@@ -1109,3 +1109,200 @@ dialog h2 {
     transition: none !important;
   }
 }
+
+/* Keep the existing palette while making discovery and instructions easier to use. */
+.mobile-menu {
+  display: none;
+}
+.hero {
+  padding-block: 40px;
+}
+.hero-search {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+  margin-top: 22px;
+}
+.hero-search label {
+  grid-column: 1/-1;
+  font-size: 14px;
+  color: var(--muted);
+}
+.hero-search input {
+  width: 100%;
+  min-width: 0;
+  padding: 10px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--text);
+  border-radius: 6px;
+}
+.sidebar > label {
+  display: block;
+  margin-top: 12px;
+}
+.sidebar > select {
+  display: block;
+  width: 100%;
+  margin-block: 6px 20px;
+}
+select {
+  max-width: 100%;
+  min-height: 44px;
+  padding: 6px;
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  background: var(--surface);
+  color: var(--text);
+}
+.kind-badge,
+.static-link {
+  font-size: 12px;
+  color: var(--muted);
+}
+.kind-badge {
+  display: inline-block;
+  padding: 1px 6px;
+  background: var(--soft);
+  border-radius: 4px;
+}
+.static-link {
+  display: inline-block;
+  min-height: 32px;
+  text-decoration: underline;
+}
+.icon-button,
+.copy-row,
+.button,
+.package-name {
+  min-width: 44px;
+  min-height: 44px;
+}
+.compatibility {
+  margin-block: 18px;
+  padding: 16px;
+  background: var(--soft);
+  border-radius: 8px;
+  font-size: 14px;
+}
+.compatibility p {
+  margin-top: 8px;
+  overflow-wrap: anywhere;
+}
+.compatibility a,
+.dialog-note a,
+.empty a,
+.warning a {
+  text-decoration: underline;
+}
+.install-modes {
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+.guide-file {
+  font-weight: 600;
+  margin-top: 16px;
+}
+dialog {
+  max-height: calc(100dvh - 32px);
+  overscroll-behavior: contain;
+}
+#install-code {
+  white-space: pre;
+  overflow-x: auto;
+  max-width: 100%;
+}
+.static-content {
+  padding-block: 32px;
+  max-width: 1000px;
+}
+.static-content h1,
+.static-content h2,
+.static-content p,
+.static-content details,
+.static-content li {
+  margin-block: 16px;
+  overflow-wrap: anywhere;
+}
+.static-content a {
+  text-decoration: underline;
+}
+.static-content pre {
+  overflow: auto;
+  padding: 16px;
+  background: var(--soft);
+  white-space: pre;
+}
+.static-content summary {
+  cursor: pointer;
+  min-height: 44px;
+}
+@media (max-width: 760px) {
+  .nav {
+    position: relative;
+    flex-wrap: wrap;
+    height: auto;
+    min-height: 68px;
+    padding-block: 8px;
+  }
+  .mobile-menu {
+    display: grid;
+    place-items: center;
+    margin-left: auto;
+  }
+  .nav nav {
+    width: 100%;
+    justify-content: space-between;
+  }
+  .nav nav:not(.expanded) > a {
+    display: none;
+  }
+  .nav nav.expanded a:nth-child(2),
+  .nav nav.expanded a:nth-child(3) {
+    display: inline-flex;
+  }
+  .nav nav a {
+    align-items: center;
+    min-height: 44px;
+    font-size: 13px;
+  }
+  .hero {
+    padding-block: 20px;
+    gap: 20px;
+  }
+  .hero h1 {
+    margin-top: 12px;
+    font-size: 32px;
+  }
+  .hero-search {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .hero-search button {
+    width: 100%;
+  }
+  .terminal {
+    display: none;
+  }
+  .hero-actions {
+    margin-top: 12px;
+  }
+  .sidebar {
+    display: block;
+  }
+  .sidebar > select {
+    width: 100%;
+  }
+  .copy-row {
+    width: 44px;
+    height: 44px;
+  }
+  .install-modes {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+  dialog {
+    width: calc(100% - 24px);
+    padding: 18px;
+  }
+}

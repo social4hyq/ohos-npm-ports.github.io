@@ -75,7 +75,7 @@ test("search, clear and status filtering work without pagination", async ({ page
   await page.getByRole("button", { name: "已废弃", exact: false }).click();
   await expect(page.locator(".package-row")).toHaveCount(1);
   await expect(page.locator(".package-name")).toHaveText("tool-12");
-  await page.getByRole("button", { name: "全部包", exact: false }).click();
+  await page.getByRole("button", { name: "全部发布状态", exact: false }).click();
   await page.getByRole("button", { name: "无 latest 标签", exact: false }).click();
   await expect(page.locator(".package-name")).toHaveText("tool-13");
   await expect(page.getByLabel("复制 tool-13 安装命令")).toBeDisabled();
@@ -87,7 +87,7 @@ test("details, version selection and copy produce valid aliases and JSON", async
   await expect(page.locator("#install-code")).toHaveText(
     "npm install @original/tool@npm:@ohos-npm-ports/tool-00@2.0.0-1",
   );
-  await page.getByRole("button", { name: "overrides", exact: true }).click();
+  await page.locator("#dependency").selectOption("indirect");
   expect(JSON.parse(await page.locator("#install-code").textContent())).toEqual({
     overrides: { "@original/tool": "npm:@ohos-npm-ports/tool-00@2.0.0-1" },
   });
@@ -119,7 +119,7 @@ test("untrusted descriptions stay text and clipboard failure is visible", async 
   );
   await page.goto("./");
   await page.getByLabel("搜索包", { exact: true }).fill("original");
-  expect(new URL(page.url()).search).toBe("");
+  expect(new URL(page.url()).searchParams.get("q")).toBe("original");
   await expect(page.locator(".package-row")).toHaveCount(1);
   await expect(page.locator(".package-description")).toContainText("<img");
   await expect(page.locator(".package-description img")).toHaveCount(0);
@@ -386,4 +386,150 @@ test("packages newer than the snapshot are discovered live and marked", async ({
   await expect(page.locator(".live-status p")).toContainText("发现 1 个未进快照的新包");
   await expect(page.getByText("staged")).toHaveCount(0);
   await expect(page.locator("#total-count")).toHaveText("15");
+});
+
+test("manager guides, deep links, back and forward preserve catalog context", async ({ page }) => {
+  await fixture(page);
+  await page.getByLabel("搜索包", { exact: true }).fill("tool-00");
+  await page.getByLabel("查看 tool-00 包详情").click();
+  await page.locator("#manager").selectOption("pnpm");
+  await page.locator("#dependency").selectOption("indirect");
+  await page.locator("#version").selectOption("1.0.0-1");
+  await expect(page.locator("#install-code")).toContainText(
+    'overrides:\n  "@original/tool": "npm:',
+  );
+  await expect(page.locator(".guide-file")).toHaveText("pnpm-workspace.yaml");
+  await expect(page).toHaveURL(
+    (url) =>
+      url.searchParams.get("manager") === "pnpm" && url.searchParams.get("version") === "1.0.0-1",
+  );
+  await page.goBack();
+  await expect(page.getByRole("dialog")).not.toBeVisible();
+  await expect(page.getByLabel("搜索包", { exact: true })).toHaveValue("tool-00");
+  await expect(page.getByLabel("查看 tool-00 包详情")).toBeFocused();
+  await page.goForward();
+  await expect(page.locator("#version")).toHaveValue("1.0.0-1");
+  await expect(page.locator("#manager")).toHaveValue("pnpm");
+  await page.reload();
+  await expect(page.locator("#version")).toHaveValue("1.0.0-1");
+  await expect(page.locator("#dependency")).toHaveValue("indirect");
+});
+
+test("missing explicit versions are not silently replaced or copied", async ({ page }) => {
+  await page.route("**/data.json", (route) => route.fulfill({ json: { packages: fixtures } }));
+  await page.goto("./?package=tool-00&version=9.9.9&manager=bun");
+  await expect(page.locator("#version")).toHaveValue("9.9.9");
+  await expect(page.locator("#install-code")).toContainText("该版本未在当前数据中找到");
+  await expect(page.locator("#copy-detail")).toBeDisabled();
+  await expect(page.locator("#manager")).toHaveValue("bun");
+});
+
+test("Chinese discovery includes platform packages but prevents installing them directly", async ({
+  page,
+}) => {
+  const packages = [
+    { ...fixtures[1], name: "@ohos-npm-ports/sqlite3", shortName: "sqlite3", upstream: "sqlite3" },
+    {
+      ...fixtures[2],
+      name: "@ohos-npm-ports/tailwindcss-oxide",
+      shortName: "tailwindcss-oxide",
+      upstream: "@tailwindcss/oxide",
+    },
+    {
+      ...fixtures[3],
+      name: "@ohos-npm-ports/tailwindcss-oxide-openharmony-arm64",
+      shortName: "tailwindcss-oxide-openharmony-arm64",
+      upstream: null,
+    },
+  ];
+  await page.route("**/data.json", (route) => route.fulfill({ json: { packages } }));
+  await page.goto("./");
+  await expect(page.locator(".package-row")).toHaveCount(2);
+  await page.getByLabel("搜索包", { exact: true }).fill("数据库");
+  await expect(page.locator(".package-name")).toHaveText("sqlite3");
+  await page.getByLabel("搜索包", { exact: true }).fill("tailwind");
+  await expect(page.locator(".package-row")).toHaveCount(2);
+  await page.getByLabel("查看 tailwindcss-oxide-openharmony-arm64 包详情").click();
+  await expect(page.locator("#copy-detail")).toBeDisabled();
+  await expect(page.locator("#detail")).toContainText("由入口包自动");
+  await page.getByRole("link", { name: /查看对应入口包/ }).click();
+  await expect(page.locator("#detail-title")).toHaveText("tailwindcss-oxide");
+  await expect(page.locator("#copy-detail")).toBeEnabled();
+});
+
+test("registry cache reduces repeat network requests and manual refresh bypasses it", async ({
+  page,
+}) => {
+  let compact = 0,
+    full = 0;
+  await page.route("https://registry.npmjs.org/**", (route) => {
+    const name = decodeURIComponent(new URL(route.request().url()).pathname.slice(1));
+    if (name === "-/v1/search") return route.fulfill({ json: { total: 0, objects: [] } });
+    if (route.request().headers().accept === "application/json") full++;
+    else compact++;
+    return route.fulfill({
+      json: { name, "dist-tags": { latest: "2.0.0-1" }, versions: { "2.0.0-1": {} } },
+    });
+  });
+  await fixture(page);
+  await expect(page.locator(".live-status")).toContainText("全部包已实时查询");
+  expect(compact).toBe(14);
+  await page.getByLabel("查看 tool-00 包详情").click();
+  await expect(page.locator("#detail")).toContainText("npm 实时查询");
+  await page.getByLabel("关闭包详情").click();
+  await expect(page.getByRole("dialog")).not.toBeVisible();
+  await page.getByLabel("查看 tool-00 包详情").click();
+  await expect(page.locator("#detail")).toContainText("npm 实时查询");
+  expect(full).toBe(1);
+  await page.getByLabel("关闭包详情").click();
+  await expect(page.getByRole("dialog")).not.toBeVisible();
+  await page.reload();
+  await expect(page.locator(".live-status")).toContainText("全部包已实时查询");
+  expect(compact).toBe(14);
+  await page.getByRole("button", { name: "刷新 npm 数据" }).click();
+  await expect(page.locator(".live-status")).toContainText("全部包已实时查询");
+  expect(compact).toBe(28);
+});
+
+test("mobile navigation keeps the guide accessible and touch targets usable", async ({ page }) => {
+  await fixture(page);
+  await page.setViewportSize({ width: 320, height: 844 });
+  await page.getByLabel("展开导航").click();
+  await expect(
+    page.getByRole("navigation", { name: "主导航" }).getByRole("link", { name: /使用指南/ }),
+  ).toBeVisible();
+  await page.getByLabel("查看 tool-00 包详情").click();
+  await expect(page.locator("#detail")).toContainText("真机验证：未记录");
+  const box = await page.locator("#close-detail").boundingBox();
+  expect(box.width).toBeGreaterThanOrEqual(44);
+  expect(box.height).toBeGreaterThanOrEqual(44);
+  await page.keyboard.press("Escape");
+  await expect(page.getByRole("dialog")).not.toBeVisible();
+});
+
+test("static home and package pages remain usable without JavaScript", async ({
+  browser,
+  baseURL,
+}) => {
+  const context = await browser.newContext({ javaScriptEnabled: false });
+  try {
+    const page = await context.newPage();
+    await page.goto(baseURL);
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText("OpenHarmony npm 包目录");
+    await page.getByRole("link", { name: "sqlite3", exact: true }).click();
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText("sqlite3");
+    await expect(page.locator("main")).toContainText(
+      "npm install sqlite3@npm:@ohos-npm-ports/sqlite3@",
+    );
+    await expect(page.locator("main")).toContainText("pnpm-workspace.yaml");
+    await expect(page.locator("link[rel=canonical]")).toHaveAttribute(
+      "href",
+      new RegExp(`${base}packages/sqlite3/$`),
+    );
+    const sitemap = await page.request.get(new URL("sitemap.xml", baseURL).href);
+    expect(sitemap.ok()).toBe(true);
+    expect(await sitemap.text()).toContain(`${base}packages/sqlite3/`);
+  } finally {
+    await context.close();
+  }
 });

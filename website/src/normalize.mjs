@@ -1,8 +1,27 @@
+import { enrichPackage } from "./catalog.mjs";
 export function normalizePackage(metadata, source = {}) {
   const version = metadata["dist-tags"]?.latest ?? null;
   const current = metadata.versions?.[version] ?? {};
   const deprecated = current.deprecated || null;
-  return {
+  const retained = Object.fromEntries(
+    [
+      "kind",
+      "category",
+      "keywords",
+      "notes",
+      "verification",
+      "sources",
+      "entry",
+      "installPolicy",
+      "nativeSupport",
+      "runtime",
+      "architecture",
+    ]
+      .filter((key) => source[key] !== undefined)
+      .map((key) => [key, source[key]]),
+  );
+  return enrichPackage({
+    ...retained,
     name: metadata.name,
     shortName: metadata.name.replace("@ohos-npm-ports/", ""),
     upstream: source.upstream ?? null,
@@ -25,5 +44,5 @@ export function normalizePackage(metadata, source = {}) {
         deprecated: metadata.versions[v].deprecated || null,
       }))
       .reverse(),
-  };
+  });
 }
