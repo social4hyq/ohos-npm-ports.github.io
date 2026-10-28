@@ -26,7 +26,7 @@
 
 构建插件以同一包数据、安装生成器输出首页和 `packages/<shortName>/index.html`，无 JavaScript 可读。启用 JavaScript 后由 Vue 增强为交互目录。兼容旧 `?package=` 链接；版本、包管理器、接入方式、搜索和发布状态保存在查询参数。旧 kind/category 参数忽略，不应用隐藏筛选；新生成的链接会移除它们。
 
-交互详情和静态详情仅围绕配置和复制，保留废弃、平台安装提醒和有证据的已知限制。配置相同则共用展示：dependencies 对三个包管理器只生成一份；overrides 的 npm/bun 共用 JSON，pnpm 使用 YAML；alias 按命令分别展示。页签中的 bun 一律小写。
+交互详情和静态详情仅围绕配置和复制，保留废弃、平台安装提醒和有证据的已知限制。配置相同则共用展示：dependencies 对三个包管理器只生成一份；overrides 的 npm/bun 共用 JSON，pnpm 使用 YAML；alias 按命令分别展示。页签中的 bun 一律小写。复制操作放在代码框右上角，分享操作放在 npm/上游链接旁，不设底部主按钮区。
 
 目录中的移植包在发布前签名，消费说明不再要求额外安装 ohos-signpost 或添加 postinstall。网站工程自身开发依赖的 postinstall 不受影响。
 

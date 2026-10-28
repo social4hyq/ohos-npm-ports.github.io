@@ -704,3 +704,51 @@ test("install tabs support keyboard navigation and small-screen common configura
   await expect(page.getByRole("tab", { name: "bun", exact: true })).toBeFocused();
   await expect(page.locator("#install-code")).toContainText("bun add");
 });
+
+test("contextual copy and share controls preserve their actions without a CTA footer", async ({
+  page,
+}, testInfo) => {
+  await fixture(page);
+  await page.getByLabel("查看 tool-00 包详情").click();
+  const copy = page.locator(".code-frame #copy-detail");
+  const share = page.locator("#detail-links #share-detail");
+  await expect(copy).toBeVisible();
+  await expect(share).toBeVisible();
+  await expect(page.locator("#install-panel > button, #detail .button.primary")).toHaveCount(0);
+  await page.evaluate(() =>
+    Object.defineProperty(navigator, "clipboard", {
+      configurable: true,
+      value: {
+        writeText: async (text) => {
+          window.copied = text;
+        },
+      },
+    }),
+  );
+  await copy.click();
+  expect(await page.evaluate(() => window.copied)).toBe(
+    await page.locator("#install-code").textContent(),
+  );
+  await page.getByRole("tab", { name: "overrides", exact: true }).click();
+  await page.getByRole("tab", { name: "pnpm", exact: true }).click();
+  await copy.click();
+  expect(await page.evaluate(() => window.copied)).toBe(
+    await page.locator("#install-code").textContent(),
+  );
+  await share.click();
+  const url = new URL(await page.evaluate(() => window.copied));
+  expect(url.searchParams.get("package")).toBe(fixtures[0].name);
+  expect(url.searchParams.get("mode")).toBe("overrides");
+  expect(url.searchParams.get("manager")).toBe("pnpm");
+  await page.setViewportSize({ width: 320, height: 844 });
+  expect(await page.locator("#detail").evaluate((el) => el.scrollWidth <= el.clientWidth)).toBe(
+    true,
+  );
+  if (testInfo.project.name === "mobile") {
+    expect((await copy.boundingBox()).height).toBeGreaterThanOrEqual(44);
+    expect((await share.boundingBox()).height).toBeGreaterThanOrEqual(44);
+  }
+  await page
+    .locator("#detail")
+    .screenshot({ path: testInfo.outputPath("contextual-actions-mobile.png") });
+});
