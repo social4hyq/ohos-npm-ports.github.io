@@ -8,8 +8,9 @@ import {
 } from "./registry.mjs";
 import {
   enrichPackage,
-  evidenceFor,
   installGuide,
+  installModes,
+  managerGroups,
   searchPackages,
   readRoute,
   routeUrl,
@@ -34,7 +35,7 @@ const query = ref(initial.query),
   status = ref(initial.status);
 const version = ref(initial.version),
   manager = ref(initial.manager),
-  dependency = ref(initial.dependency);
+  mode = ref(initial.mode);
 const menuOpen = ref(false);
 let ignoredCloseEvents = 0;
 let detailRequest = 0,
@@ -54,20 +55,41 @@ const guide = computed(() =>
   selected.value
     ? installGuide(selected.value, {
         manager: manager.value,
-        dependency: dependency.value,
+        mode: mode.value,
         version: version.value,
       })
     : {},
 );
-const code = computed(() => guide.value.code);
-const versionInfo = computed(() =>
-  selected.value?.versions.find((v) => v.version === version.value),
+const groups = computed(() => managerGroups(mode.value));
+const activeManager = computed(
+  () => groups.value.find((group) => group.members.includes(manager.value))?.key,
 );
+function moveTab(event, keys, active, prefix) {
+  let index = keys.indexOf(active);
+  if (event.key === "ArrowRight") index = (index + 1) % keys.length;
+  else if (event.key === "ArrowLeft") index = (index + keys.length - 1) % keys.length;
+  else if (event.key === "Home") index = 0;
+  else if (event.key === "End") index = keys.length - 1;
+  else return;
+  event.preventDefault();
+  if (prefix === "mode-tab-") mode.value = keys[index];
+  else manager.value = keys[index];
+  void nextTick(() => document.getElementById(prefix + keys[index])?.focus());
+}
+function modeKeydown(event) {
+  moveTab(event, Object.keys(installModes), mode.value, "mode-tab-");
+}
+function managerKeydown(event) {
+  moveTab(
+    event,
+    groups.value.map((group) => group.key),
+    activeManager.value,
+    "manager-tab-",
+  );
+}
+const code = computed(() => guide.value.code);
 const deprecated = computed(
   () => selected.value?.versions.find((v) => v.version === version.value)?.deprecated,
-);
-const verification = computed(() =>
-  selected.value ? evidenceFor(selected.value, version.value) : [],
 );
 const notes = computed(() =>
   (selected.value?.notes || []).filter((n) => !n.version || n.version === version.value),
@@ -111,14 +133,14 @@ function routeState(pkg = selected.value) {
     package: pkg?.name || "",
     version: pkg ? version.value : "",
     manager: manager.value,
-    dependency: dependency.value,
+    mode: mode.value,
   };
 }
 function syncUrl() {
   if (ready.value && !routing)
     history.replaceState(history.state, "", routeUrl(routeState(), base));
 }
-watch([query, status, version, manager, dependency], syncUrl);
+watch([query, status, version, manager, mode], syncUrl);
 function packageUrl(pkg) {
   return routeUrl({ ...routeState(pkg), version: version.value }, base).href;
 }
@@ -236,7 +258,7 @@ async function openDetail(pkg, { navigation = true, route } = {}) {
   selected.value = pkg;
   version.value = route?.version || pkg.version || pkg.versions[0]?.version || "";
   manager.value = route?.manager || manager.value;
-  dependency.value = route?.dependency || dependency.value;
+  mode.value = route?.mode || mode.value;
   await nextTick();
   if (!dialog.value.open) dialog.value.showModal();
   if (navigation) history.pushState({ catalogModal: true }, "", routeUrl(routeState(), base));
@@ -288,7 +310,7 @@ async function restoreRoute() {
   query.value = state.query;
   status.value = state.status;
   manager.value = state.manager;
-  dependency.value = state.dependency;
+  mode.value = state.mode;
   await nextTick();
   const pkg = packages.value.find((p) => p.name === state.package || p.shortName === state.package);
   if (pkg) await openDetail(pkg, { navigation: false, route: state });
@@ -603,10 +625,8 @@ onUnmounted(() => {
     <div class="compat-note">
       <span>i</span>
       <p>
-        这里的“latest 未废弃”仅表示 npm 的 latest 版本未标记废弃，不代表真机验收通过。使用 npm /
-        pnpm 安装原生模块时，可能还需要
-        <a href="https://www.npmjs.com/package/ohos-signpost">ohos-signpost</a>
-        签名；Bun 已内置签名。请以具体包的说明和目标设备实测为准。
+        “latest 未废弃”仅表示 npm
+        发布状态，不代表真机验收通过。请以具体包说明和目标设备运行结果为准。
       </p>
     </div>
   </main>
@@ -672,84 +692,67 @@ onUnmounted(() => {
         >
       </p>
 
-      <div id="install-modes" class="install-modes">
-        <label for="manager">包管理器</label
-        ><select id="manager" v-model="manager">
-          <option value="npm">npm</option>
-          <option value="pnpm">pnpm</option>
-          <option value="bun">Bun</option>
-        </select>
-        <label for="dependency">依赖类型</label
-        ><select id="dependency" v-model="dependency">
-          <option value="direct">直接依赖</option>
-          <option value="indirect">间接依赖</option>
-        </select>
+      <div
+        id="install-modes"
+        class="install-tabs mode-tabs"
+        role="tablist"
+        aria-label="接入方式"
+        @keydown="modeKeydown"
+      >
+        <button
+          v-for="(label, value) in installModes"
+          :key="value"
+          :id="'mode-tab-' + value"
+          type="button"
+          role="tab"
+          :aria-selected="mode === value"
+          :tabindex="mode === value ? 0 : -1"
+          aria-controls="install-panel"
+          @click="mode = value"
+        >
+          {{ label }}
+        </button>
       </div>
-      <p class="guide-file">{{ guide.file || "请先阅读接入说明" }}</p>
-      <pre id="install-code" tabindex="0">{{ code || guide.note }}</pre>
-      <p v-if="code" class="dialog-note">{{ guide.note }}</p>
-      <p v-if="detailMessage.includes('失败')" class="dialog-note">
-        实时版本查询暂不可用，当前使用已有数据。
-      </p>
-      <button id="copy-detail" class="button primary" :disabled="!code" @click="copy(code)">
-        {{ dependency === "direct" ? "复制安装命令" : "复制配置" }}
-      </button>
-      <button class="button" @click="copy(packageUrl(selected))">复制分享链接</button>
-      <details id="compatibility-details" class="detail-disclosure">
-        <summary>兼容性与限制</summary>
-        <p>发布状态：{{ labels[selected.status] }}</p>
-        <p>
-          包声明的运行时：{{ versionInfo?.runtime || "未记录" }} · CPU：{{
-            versionInfo?.architecture || "未记录"
-          }}
+      <div
+        v-if="groups.length"
+        class="install-tabs manager-tabs"
+        role="tablist"
+        aria-label="包管理器"
+        @keydown="managerKeydown"
+      >
+        <button
+          v-for="group in groups"
+          :key="group.key"
+          :id="'manager-tab-' + group.key"
+          type="button"
+          role="tab"
+          :aria-selected="group.members.includes(manager)"
+          :tabindex="group.members.includes(manager) ? 0 : -1"
+          aria-controls="install-panel"
+          @click="manager = group.key"
+        >
+          {{ group.label }}
+        </button>
+      </div>
+      <section
+        id="install-panel"
+        role="tabpanel"
+        :aria-labelledby="
+          'mode-tab-' + mode + (activeManager ? ' manager-tab-' + activeManager : '')
+        "
+      >
+        <p class="guide-file">{{ guide.file || "请先阅读接入说明" }}</p>
+        <pre id="install-code" tabindex="0">{{ code || guide.note }}</pre>
+        <p v-if="code" class="dialog-note">{{ guide.note }}</p>
+        <p v-if="detailMessage.includes('失败')" class="dialog-note">
+          实时版本查询暂不可用，当前使用已有数据。
         </p>
-        <p v-if="!verification.length">
-          所选版本的真机验证：未记录。npm 发布和网站 CI 不代表真机验收通过。
-        </p>
-        <p v-for="item in verification" :key="item.url">
-          <a :href="item.url"
-            >{{ item.version }} · {{ item.environment }} · {{ item.date }} · {{ item.result }} ↗</a
-          >
-        </p>
-        <p v-if="!notes.length">所选版本的已知限制：未记录，请查阅移植说明并在目标设备测试。</p>
-        <p v-if="selected.nativeSupport">
-          <a :href="selected.nativeSupport.url">{{ selected.nativeSupport.text }} ↗</a>
-        </p>
-      </details>
-      <details id="source-details" class="detail-disclosure">
-        <summary>来源与版本信息</summary>
-        <p role="status">{{ detailMessage }}</p>
-        <p>npm 发布状态不代表真机验收；实时查询失败时保留快照。</p>
-        <p class="dialog-note">
-          当前 latest 发布时间：{{
-            selected.publishedAt
-              ? new Date(selected.publishedAt).toLocaleString("zh-CN")
-              : "未记录"
-          }}；目录快照时间见首页。
-        </p>
-        <p v-for="source in selected.sources || []" :key="source.url">
-          <a :href="source.url">{{ source.label }} ↗</a>
-        </p>
-        <a
-          v-if="selected.directories[0]"
-          :href="`https://github.com/ohos-npm-ports/ohos-npm-ports/tree/main/${selected.directories[0].split('/').slice(0, 2).join('/')}`"
-          >构建与补丁 ↗</a
-        ><span v-if="selected.license">{{ selected.license }}</span>
-      </details>
-      <details v-if="manager !== 'bun'" class="signing-help">
-        <summary>原生模块加载被拒绝？查看签名配置</summary>
-        <p>
-          仅在包说明或目标设备加载结果表明需要时配置；将脚本合并进现有
-          postinstall，不要覆盖其他步骤。
-        </p>
-        <pre>{{
-          manager === "pnpm" ? "pnpm add -D ohos-signpost" : "npm install --save-dev ohos-signpost"
-        }}</pre>
-        <p>package.json 的 scripts 中加入签名步骤：</p>
-        <pre>{ "scripts": { "postinstall": "ohos-signpost" } }</pre>
-        <a href="https://www.npmjs.com/package/ohos-signpost">工具说明 ↗</a>
-      </details>
-      <p class="dialog-note">安装成功不等于已通过设备验证，请在目标设备测试加载与运行。</p>
+        <button id="copy-detail" class="button primary" :disabled="!code" @click="copy(code)">
+          {{ mode === "alias" ? "复制安装命令" : "复制配置" }}
+        </button>
+        <button class="button" @click="copy(packageUrl(selected))">复制分享链接</button>
+      </section>
+      <p class="sr-only" role="status">{{ detailMessage }}</p>
     </template>
   </dialog>
 

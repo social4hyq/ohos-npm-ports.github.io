@@ -50,10 +50,20 @@ test("static catalog hides platform internals and normal pages omit maintenance 
   assert.ok(renderPackage(platform).includes("平台子包通常由入口自动安装"));
 });
 
-test("static details also put the primary install command before optional information", () => {
+test("static details remain focused on installation", () => {
   const html = renderPackage(pkg);
-  assert.ok(html.indexOf("npm install sqlite3") < html.indexOf('id="compatibility-details"'));
-  assert.ok(html.includes('<details id="compatibility-details"'));
-  assert.ok(!html.includes('<details id="compatibility-details" open'));
+  assert.ok(html.includes("npm install sqlite3"));
+  assert.ok(!html.includes("compatibility-details"));
+  assert.ok(!html.includes("source-details"));
   assert.ok(html.includes("其他接入方式"));
+});
+
+test("static configuration examples are deduplicated and never ask consumers to sign packages", () => {
+  const html = renderPackage(pkg);
+  assert.ok(!html.includes("ohos-signpost"));
+  assert.ok(!html.includes("postinstall"));
+  assert.ok(!html.includes("compatibility-details"));
+  assert.ok(!html.includes("source-details"));
+  assert.equal((html.match(/npm \/ pnpm \/ bun 通用/g) || []).length, 1);
+  assert.ok(html.includes("npm / bun"));
 });

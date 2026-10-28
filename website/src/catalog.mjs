@@ -1,4 +1,18 @@
 import info from "./package-info.json" with { type: "json" };
+export const installModes = {
+  alias: "npm alias",
+  dependencies: "dependencies",
+  overrides: "overrides",
+};
+export function managerGroups(mode) {
+  if (mode === "dependencies") return [];
+  return mode === "overrides"
+    ? [
+        { key: "npm", label: "npm / bun", members: ["npm", "bun"] },
+        { key: "pnpm", label: "pnpm", members: ["pnpm"] },
+      ]
+    : ["npm", "pnpm", "bun"].map((name) => ({ key: name, label: name, members: [name] }));
+}
 export const statusLabels = {
   all: "全部发布状态",
   active: "latest 未废弃",
@@ -26,10 +40,7 @@ export function evidenceFor(pkg, version) {
       v.result,
   );
 }
-export function installGuide(
-  pkg,
-  { manager = "npm", dependency = "direct", version = pkg.version } = {},
-) {
+export function installGuide(pkg, { manager = "npm", mode = "alias", version = pkg.version } = {}) {
   if (pkg.installPolicy === "manual")
     return {
       file: null,
@@ -47,7 +58,7 @@ export function installGuide(
   if (!version || !pkg.versions?.some((v) => v.version === version))
     return { file: null, code: null, note: "该版本未在当前数据中找到，请确认版本信息后再复制。" };
   const spec = `${pkg.name}@${version}`;
-  if (dependency === "direct")
+  if (mode === "alias")
     return {
       file: "终端",
       code: `${manager === "npm" ? "npm install" : `${manager} add`} ${pkg.upstream ? `${pkg.upstream}@npm:` : ""}${spec}`,
@@ -56,17 +67,27 @@ export function installGuide(
         : "尚未确认上游映射；此命令安装 scope 包本身，不保证保留原来的 import 名称。",
     };
   if (!pkg.upstream)
-    return { file: null, code: null, note: "尚未确认上游包名，不生成猜测的 overrides。" };
+    return { file: null, code: null, note: "尚未确认上游包名，不能生成猜测的配置。" };
   const target = `npm:${spec}`;
+  if (mode === "dependencies")
+    return {
+      file: "package.json",
+      code: JSON.stringify({ dependencies: { [pkg.upstream]: target } }, null, 2),
+      note: "npm / pnpm / bun 通用，合并到现有 dependencies 即可。",
+    };
   return {
     file: manager === "pnpm" ? "pnpm-workspace.yaml" : "package.json",
     code:
       manager === "pnpm"
         ? `overrides:\n  ${JSON.stringify(pkg.upstream)}: ${JSON.stringify(target)}`
         : JSON.stringify({ overrides: { [pkg.upstream]: target } }, null, 2),
-    note: `合并到项目根目录的现有配置，不要覆盖其他字段；然后执行 ${manager} install。仅用于间接依赖。`,
+    note:
+      manager === "pnpm"
+        ? "用于间接依赖，合并到项目根目录的现有配置。"
+        : "npm / bun 通用。用于间接依赖，合并到现有 overrides。",
   };
 }
+
 export function searchPackages(packages, { query = "", status = "all" } = {}) {
   const q = query.trim().toLowerCase();
   return packages
@@ -98,7 +119,11 @@ export function readRoute(input) {
     package: p.get("package") || pathName,
     version: p.get("version") || "",
     manager: allow(p.get("manager"), ["npm", "pnpm", "bun"], "npm"),
-    dependency: allow(p.get("dependency"), ["direct", "indirect"], "direct"),
+    mode: allow(
+      p.get("mode") === "npm" ? "alias" : p.get("mode"),
+      Object.keys(installModes),
+      p.get("dependency") === "indirect" ? "overrides" : "alias",
+    ),
     query: p.get("q") || "",
     status: allow(p.get("status"), Object.keys(statusLabels), "all"),
   };
@@ -107,16 +132,17 @@ export function routeUrl(state, base) {
   const url = new URL(base);
   url.searchParams.delete("kind");
   url.searchParams.delete("category");
+  url.searchParams.delete("dependency");
   const defaults = {
     manager: "npm",
-    dependency: "direct",
+    mode: "alias",
     status: "all",
   };
   for (const [key, alias] of Object.entries({
     package: "package",
     version: "version",
     manager: "manager",
-    dependency: "dependency",
+    mode: "mode",
     query: "q",
     status: "status",
   })) {

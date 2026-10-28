@@ -87,7 +87,7 @@ test("details, version selection and copy produce valid aliases and JSON", async
   await expect(page.locator("#install-code")).toHaveText(
     "npm install @original/tool@npm:@ohos-npm-ports/tool-00@2.0.0-1",
   );
-  await page.locator("#dependency").selectOption("indirect");
+  await page.getByRole("tab", { name: "overrides", exact: true }).click();
   expect(JSON.parse(await page.locator("#install-code").textContent())).toEqual({
     overrides: { "@original/tool": "npm:@ohos-npm-ports/tool-00@2.0.0-1" },
   });
@@ -392,8 +392,8 @@ test("manager guides, deep links, back and forward preserve catalog context", as
   await fixture(page);
   await page.getByLabel("搜索包", { exact: true }).fill("tool-00");
   await page.getByLabel("查看 tool-00 包详情").click();
-  await page.locator("#manager").selectOption("pnpm");
-  await page.locator("#dependency").selectOption("indirect");
+  await page.getByRole("tab", { name: "pnpm", exact: true }).click();
+  await page.getByRole("tab", { name: "overrides", exact: true }).click();
   await page.locator("#version").selectOption("1.0.0-1");
   await expect(page.locator("#install-code")).toContainText(
     'overrides:\n  "@original/tool": "npm:',
@@ -409,10 +409,16 @@ test("manager guides, deep links, back and forward preserve catalog context", as
   await expect(page.getByLabel("查看 tool-00 包详情")).toBeFocused();
   await page.goForward();
   await expect(page.locator("#version")).toHaveValue("1.0.0-1");
-  await expect(page.locator("#manager")).toHaveValue("pnpm");
+  await expect(page.getByRole("tab", { name: "pnpm", exact: true })).toHaveAttribute(
+    "aria-selected",
+    "true",
+  );
   await page.reload();
   await expect(page.locator("#version")).toHaveValue("1.0.0-1");
-  await expect(page.locator("#dependency")).toHaveValue("indirect");
+  await expect(page.getByRole("tab", { name: "overrides", exact: true })).toHaveAttribute(
+    "aria-selected",
+    "true",
+  );
 });
 
 test("missing explicit versions are not silently replaced or copied", async ({ page }) => {
@@ -421,7 +427,10 @@ test("missing explicit versions are not silently replaced or copied", async ({ p
   await expect(page.locator("#version")).toHaveValue("9.9.9");
   await expect(page.locator("#install-code")).toContainText("该版本未在当前数据中找到");
   await expect(page.locator("#copy-detail")).toBeDisabled();
-  await expect(page.locator("#manager")).toHaveValue("bun");
+  await expect(page.getByRole("tab", { name: "bun", exact: true })).toHaveAttribute(
+    "aria-selected",
+    "true",
+  );
 });
 
 test("Chinese discovery includes platform packages but prevents installing them directly", async ({
@@ -499,8 +508,7 @@ test("mobile navigation keeps the guide accessible and touch targets usable", as
     page.getByRole("navigation", { name: "主导航" }).getByRole("link", { name: /使用指南/ }),
   ).toBeVisible();
   await page.getByLabel("查看 tool-00 包详情").click();
-  await page.locator("#compatibility-details summary").click();
-  await expect(page.locator("#detail")).toContainText("真机验证：未记录");
+  await expect(page.locator("#detail")).not.toContainText("ohos-signpost");
   const box = await page.locator("#close-detail").boundingBox();
   expect(box.width).toBeGreaterThanOrEqual(44);
   expect(box.height).toBeGreaterThanOrEqual(44);
@@ -550,21 +558,19 @@ test("queued dialog close events cannot dismiss a newly restored forward entry",
   }
 });
 
-test("real package instructions and signing help fit the dialog at 320px", async ({
-  page,
-}, testInfo) => {
+test("real package configuration tabs fit the dialog at 320px", async ({ page }, testInfo) => {
   await page.goto("./?package=sqlite3&manager=pnpm&dependency=indirect");
   await expect(page.locator("#detail-title")).toHaveText("sqlite3");
   await expect(page.locator("#install-code")).toContainText("overrides:");
   await page.locator("#detail").screenshot({ path: testInfo.outputPath("package-detail.png") });
   await page.setViewportSize({ width: 320, height: 844 });
-  await page.locator(".signing-help summary").click();
+  await expect(page.locator(".signing-help, #manager, #dependency")).toHaveCount(0);
   expect(await page.locator("#detail").evaluate((el) => el.scrollWidth <= el.clientWidth)).toBe(
     true,
   );
   await page
     .locator("#detail")
-    .screenshot({ path: testInfo.outputPath("package-signing-mobile.png") });
+    .screenshot({ path: testInfo.outputPath("package-tabs-mobile.png") });
 });
 
 test("catalog discovery needs no type or purpose controls, including old facet links", async ({
@@ -589,30 +595,16 @@ test("catalog discovery needs no type or purpose controls, including old facet l
   await expect(page.locator(".package-name")).toHaveText("sqlite3");
 });
 
-test("package details lead with installation and disclose secondary information on demand", async ({
-  page,
-}, testInfo) => {
+test("package details stay focused on configuration and copying", async ({ page }, testInfo) => {
   await fixture(page);
   await page.getByLabel("查看 tool-00 包详情").click();
   await expect(page.locator("#install-code")).toBeVisible();
   await expect(page.locator("#copy-detail")).toBeVisible();
-  await expect(page.locator("#compatibility-details")).not.toHaveAttribute("open", "");
-  await expect(page.locator("#source-details")).not.toHaveAttribute("open", "");
+  await expect(
+    page.locator("#compatibility-details, #source-details, .signing-help, #dependency, #manager"),
+  ).toHaveCount(0);
   await expect(page.locator("#detail")).not.toContainText("未分类");
-  const above = await page.evaluate(
-    () =>
-      document
-        .getElementById("install-code")
-        .compareDocumentPosition(document.getElementById("compatibility-details")) &
-      Node.DOCUMENT_POSITION_FOLLOWING,
-  );
-  expect(above).toBeTruthy();
-  await page.locator("#compatibility-details summary").click();
-  await expect(page.getByText(/所选版本的真机验证：未记录/)).toBeVisible();
-  await page.locator("#compatibility-details summary").click();
-  await page.locator("#source-details summary").click();
-  await expect(page.locator("#source-details")).toContainText("快照");
-  await page.locator("#source-details summary").click();
+  await expect(page.locator("#detail")).not.toContainText("ohos-signpost");
   await page.locator("#detail").screenshot({ path: testInfo.outputPath("simple-detail.png") });
 });
 
@@ -643,5 +635,72 @@ test("known limitations remain visible without opening secondary detail sections
   await expect(
     page.locator("#detail .warning").filter({ hasText: "不是原生 NW.js 运行时" }),
   ).toBeVisible();
-  await expect(page.locator("#compatibility-details")).not.toHaveAttribute("open", "");
+  await expect(page.locator("#compatibility-details")).toHaveCount(0);
+});
+
+test("configuration tabs deduplicate common snippets and retain manager choice", async ({
+  page,
+}, testInfo) => {
+  await fixture(page);
+  await page.getByLabel("查看 tool-00 包详情").click();
+  const managers = page.getByRole("tablist", { name: "包管理器" });
+  await expect(managers.getByRole("tab")).toHaveText(["npm", "pnpm", "bun"]);
+  await managers.getByRole("tab", { name: "bun", exact: true }).click();
+  await expect(page.locator("#install-code")).toContainText("bun add @original/tool@npm:");
+  await page.getByRole("tab", { name: "dependencies", exact: true }).click();
+  await expect(managers).toHaveCount(0);
+  expect(
+    JSON.parse(await page.locator("#install-code").textContent()).dependencies["@original/tool"],
+  ).toBe("npm:@ohos-npm-ports/tool-00@2.0.0-1");
+  await page.getByRole("tab", { name: "overrides", exact: true }).click();
+  await expect(managers.getByRole("tab")).toHaveText(["npm / bun", "pnpm"]);
+  await expect(managers.getByRole("tab", { name: "npm / bun", exact: true })).toHaveAttribute(
+    "aria-selected",
+    "true",
+  );
+  await managers.getByRole("tab", { name: "pnpm", exact: true }).click();
+  await expect(page.locator(".guide-file")).toHaveText("pnpm-workspace.yaml");
+  await expect(page.locator("#install-code")).toContainText("overrides:");
+  await expect(page).toHaveURL(
+    (url) => url.searchParams.get("mode") === "overrides" && !url.searchParams.has("dependency"),
+  );
+  await page.reload();
+  await expect(page.getByRole("tab", { name: "overrides", exact: true })).toHaveAttribute(
+    "aria-selected",
+    "true",
+  );
+  await expect(page.getByRole("tab", { name: "pnpm", exact: true })).toHaveAttribute(
+    "aria-selected",
+    "true",
+  );
+  await page.locator("#detail").screenshot({ path: testInfo.outputPath("overrides-tabs.png") });
+});
+
+test("install tabs support keyboard navigation and small-screen common configuration", async ({
+  page,
+}, testInfo) => {
+  await fixture(page);
+  await page.getByLabel("查看 tool-00 包详情").click();
+  await page.getByRole("tab", { name: "npm alias", exact: true }).focus();
+  await page.keyboard.press("ArrowRight");
+  await expect(page.getByRole("tab", { name: "dependencies", exact: true })).toBeFocused();
+  await expect(page.getByRole("tab", { name: "dependencies", exact: true })).toHaveAttribute(
+    "aria-selected",
+    "true",
+  );
+  await page.setViewportSize({ width: 320, height: 844 });
+  expect(await page.locator("#detail").evaluate((el) => el.scrollWidth <= el.clientWidth)).toBe(
+    true,
+  );
+  await page
+    .locator("#detail")
+    .screenshot({ path: testInfo.outputPath("dependencies-common-mobile.png") });
+  await page.keyboard.press("Home");
+  await page
+    .getByRole("tablist", { name: "包管理器" })
+    .getByRole("tab", { name: "npm", exact: true })
+    .focus();
+  await page.keyboard.press("End");
+  await expect(page.getByRole("tab", { name: "bun", exact: true })).toBeFocused();
+  await expect(page.locator("#install-code")).toContainText("bun add");
 });

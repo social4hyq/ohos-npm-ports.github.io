@@ -806,23 +806,6 @@ dialog h2 {
   padding: 8px;
   border-radius: 5px;
 }
-.install-modes {
-  display: flex;
-  gap: 5px;
-  flex-wrap: wrap;
-  border-bottom: 1px solid var(--line);
-}
-.install-modes button {
-  padding: 9px;
-  font:
-    14px ui-monospace,
-    monospace;
-  border-bottom: 2px solid transparent;
-}
-.install-modes button[aria-pressed="true"] {
-  border-color: var(--green);
-  color: var(--green);
-}
 #install-code {
   font:
     14px/1.8 ui-monospace,
@@ -1167,11 +1150,6 @@ select {
 .warning a {
   text-decoration: underline;
 }
-.install-modes {
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 10px;
-}
 .guide-file {
   font-weight: 600;
   margin-top: 16px;
@@ -1266,10 +1244,6 @@ dialog {
     width: 44px;
     height: 44px;
   }
-  .install-modes {
-    display: grid;
-    grid-template-columns: auto minmax(0, 1fr);
-  }
   dialog {
     width: calc(100% - 24px);
     padding: 18px;
@@ -1285,20 +1259,6 @@ dialog {
 }
 .live-status .button {
   flex-shrink: 0;
-}
-.signing-help {
-  margin-top: 18px;
-  font-size: 14px;
-}
-.signing-help summary {
-  min-height: 44px;
-  cursor: pointer;
-}
-.signing-help pre {
-  max-width: 100%;
-  overflow-x: auto;
-  padding: 10px;
-  background: var(--soft);
 }
 @media (max-width: 760px) {
   .nav nav {
@@ -1339,4 +1299,72 @@ dialog {
 }
 .detail-disclosure a {
   text-decoration: underline;
+}
+
+.install-tabs {
+  display: flex;
+  gap: 4px;
+  min-width: 0;
+}
+.install-tabs button {
+  border: 0;
+  min-height: 44px;
+  padding: 8px 12px;
+  font-size: 14px;
+  font-weight: 550;
+  white-space: nowrap;
+  color: var(--muted);
+}
+.mode-tabs {
+  border-bottom: 1px solid var(--line);
+  margin: 20px 0;
+}
+.mode-tabs button {
+  flex: 1;
+  position: relative;
+}
+.mode-tabs button[aria-selected="true"] {
+  color: var(--green);
+}
+.mode-tabs button[aria-selected="true"]::after {
+  content: "";
+  position: absolute;
+  height: 2px;
+  left: 10px;
+  right: 10px;
+  bottom: -1px;
+  background: var(--green);
+}
+.manager-tabs {
+  display: inline-flex;
+  background: var(--soft);
+  border-radius: 7px;
+  padding: 3px;
+  margin-bottom: 18px;
+}
+.manager-tabs button {
+  min-height: 36px;
+  min-width: 65px;
+  padding: 5px 12px;
+  border-radius: 5px;
+  font-size: 13px;
+}
+.manager-tabs button[aria-selected="true"] {
+  color: var(--text);
+  background: var(--surface);
+  box-shadow: 0 1px 4px #213c3210;
+}
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+@media (max-width: 480px) {
+  .mode-tabs button {
+    font-size: 13px;
+    padding-inline: 6px;
+  }
 }
