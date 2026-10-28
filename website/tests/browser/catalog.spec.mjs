@@ -637,7 +637,11 @@ test("known limitations remain visible without opening secondary detail sections
   );
   await page.goto("./?package=nw");
   await expect(page.locator("#detail-title")).toHaveText("nw");
-  await expect(page.locator("#detail .warning")).toContainText("不是原生 NW.js 运行时");
-  await expect(page.locator("#detail .warning")).toBeVisible();
+  await expect(
+    page.locator("#detail .warning").filter({ hasText: "不是原生 NW.js 运行时" }),
+  ).toContainText("不是原生 NW.js 运行时");
+  await expect(
+    page.locator("#detail .warning").filter({ hasText: "不是原生 NW.js 运行时" }),
+  ).toBeVisible();
   await expect(page.locator("#compatibility-details")).not.toHaveAttribute("open", "");
 });
