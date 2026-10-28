@@ -1,12 +1,6 @@
 import { readFile, writeFile, mkdir } from "node:fs/promises";
 import { join } from "node:path";
-import {
-  enrichPackage,
-  installGuide,
-  kindLabels,
-  statusLabels,
-  evidenceFor,
-} from "../src/catalog.mjs";
+import { enrichPackage, installGuide, statusLabels, evidenceFor } from "../src/catalog.mjs";
 export const escapeHtml = (text) =>
   String(text ?? "").replace(
     /[&<>"']/g,
@@ -27,26 +21,35 @@ export function pageMetadata({
   return `<title>${escapeHtml(title)}</title><meta name="description" content="${escapeHtml(description)}"><link rel="canonical" href="${escapeHtml(canonical)}"><meta property="og:title" content="${escapeHtml(title)}"><meta property="og:description" content="${escapeHtml(description)}"><meta property="og:url" content="${escapeHtml(canonical)}"><meta property="og:type" content="website"><meta name="twitter:card" content="summary">`;
 }
 export function renderCatalog(packages, base = "/") {
-  return `<main class="shell static-content"><h1>OpenHarmony npm 包目录</h1><p>优先使用上游原生支持。以下为构建时快照，启用 JavaScript 可搜索和实时刷新。</p><ul>${packages
+  return `<main class="shell static-content"><h1>OpenHarmony npm 包目录</h1><p>优先使用上游原生支持。以下为构建时快照，启用 JavaScript 可搜索（含平台子包）和实时刷新。</p><ul>${packages
     .map(enrichPackage)
+    .filter((p) => p.kind !== "platform")
     .map(
       (p) =>
-        `<li><a href="${base}packages/${encodeURIComponent(p.shortName)}/">${escapeHtml(p.shortName)}</a> · ${escapeHtml(p.version)} · ${kindLabels[p.kind]}<p>${escapeHtml(p.description)}</p></li>`,
+        `<li><a href="${base}packages/${encodeURIComponent(p.shortName)}/">${escapeHtml(p.shortName)}</a> · ${escapeHtml(p.version)}<p>${escapeHtml(p.description)}</p></li>`,
     )
     .join("")}</ul></main>`;
 }
 export function renderPackage(source, base = "/") {
   const p = enrichPackage(source);
-  const guides = ["npm", "pnpm", "bun"]
-    .map((manager) =>
-      ["direct", "indirect"]
-        .map((dependency) => {
-          const g = installGuide(p, { manager, dependency });
-          return `<details${manager === "npm" && dependency === "direct" ? " open" : ""}><summary>${manager} · ${dependency === "direct" ? "直接" : "间接"}依赖</summary><p>${escapeHtml(g.file)}</p><pre tabindex="0">${escapeHtml(g.code || g.note)}</pre><p>${escapeHtml(g.note)}</p></details>`;
-        })
-        .join(""),
-    )
-    .join("");
+  const renderGuide = (manager, dependency) => {
+    const g = installGuide(p, { manager, dependency });
+    return `<p>${escapeHtml(g.file)}</p><pre tabindex="0">${escapeHtml(g.code || g.note)}</pre><p>${escapeHtml(g.note)}</p>`;
+  };
+  const primary = renderGuide("npm", "direct");
+  const alternatives = installGuide(p).code
+    ? `<details class="detail-disclosure"><summary>其他接入方式</summary>${["npm", "pnpm", "bun"]
+        .map((manager) =>
+          ["direct", "indirect"]
+            .filter((dependency) => manager !== "npm" || dependency !== "direct")
+            .map(
+              (dependency) =>
+                `<details><summary>${manager} · ${dependency === "direct" ? "直接" : "间接"}依赖</summary>${renderGuide(manager, dependency)}</details>`,
+            )
+            .join(""),
+        )
+        .join("")}</details>`
+    : "";
   const verification = evidenceFor(p, p.version);
   const records = verification.length
     ? verification
@@ -57,7 +60,8 @@ export function renderPackage(source, base = "/") {
         .join("")
     : "<p>所选版本的真机验证：未记录。发布状态和网站 CI 不代表真机验收通过。</p>";
   const notes = (p.notes || []).filter((n) => !n.version || n.version === p.version);
-  return `<main class="shell static-content"><nav><a href="${base}">← 返回包目录</a> · <a href="${base}?package=${encodeURIComponent(p.name)}">打开交互详情</a></nav><h1>${escapeHtml(p.shortName)}</h1><p>${escapeHtml(p.description)}</p><p>${escapeHtml(p.version)} · ${kindLabels[p.kind]} · ${escapeHtml(statusLabels[p.status])}</p><p>${link(`https://www.npmjs.com/package/${p.name}`, "npm 包")} ${p.upstream ? link(`https://www.npmjs.com/package/${p.upstream}`, "上游包") : ""}</p><h2>兼容性与限制</h2><p>包声明的运行时：${escapeHtml(p.runtime || "未记录")} · CPU：${escapeHtml(p.architecture || "未记录")}</p>${records}${notes.length ? notes.map((n) => `<p>${escapeHtml(n.text)} ${link(n.url, "来源")}</p>`).join("") : "<p>所选版本的已知限制：未记录，请在目标设备验证。</p>"}${(p.sources || []).map((s) => `<p>${link(s.url, s.label)}</p>`).join("")}${p.nativeSupport ? `<p>${link(p.nativeSupport.url, p.nativeSupport.text)}</p>` : ""}${p.kind === "platform" ? `<p>平台子包通常由入口自动安装。${p.entry ? `<a href="${base}packages/${encodeURIComponent(p.entry.replace("@ohos-npm-ports/", ""))}/">查看入口包 ${escapeHtml(p.entry)}</a>` : "入口关联未记录，请查阅包文档。"}</p>` : ""}<h2>接入配置</h2>${guides}<p>将配置合并到现有文件，不要覆盖其他字段。npm / pnpm 安装原生模块后可能需要 ${link("https://www.npmjs.com/package/ohos-signpost", "ohos-signpost")} 签名；Harmonybrew 的 Bun 已内置签名。安装后仍需在目标设备验证加载与运行。</p></main>`;
+  const warnings = `${p.deprecated ? `<p class="warning">该版本已废弃：${escapeHtml(p.deprecated)}</p>` : ""}${notes.map((n) => `<p class="warning">${escapeHtml(n.text)} ${link(n.url, "来源")}</p>`).join("")}${p.kind === "platform" ? `<p class="warning">平台子包通常由入口自动安装。${p.entry ? `<a href="${base}packages/${encodeURIComponent(p.entry.replace("@ohos-npm-ports/", ""))}/">查看入口包 ${escapeHtml(p.entry)}</a>` : "入口关联未记录，请查阅包文档。"}</p>` : ""}`;
+  return `<main class="shell static-content"><nav><a href="${base}">← 返回包目录</a> · <a href="${base}?package=${encodeURIComponent(p.name)}">打开交互详情</a></nav><h1>${escapeHtml(p.shortName)}</h1><p>${escapeHtml(p.description)}</p><p>${escapeHtml(p.version)}</p><p>${link(`https://www.npmjs.com/package/${p.name}`, "npm 包")} ${p.upstream ? link(`https://www.npmjs.com/package/${p.upstream}`, "上游包") : ""}</p>${warnings}<h2>安装</h2>${primary}${alternatives}<details id="compatibility-details" class="detail-disclosure"><summary>兼容性与限制</summary><p>发布状态：${escapeHtml(statusLabels[p.status])}</p><p>包声明的运行时：${escapeHtml(p.runtime || "未记录")} · CPU：${escapeHtml(p.architecture || "未记录")}</p>${records}${notes.length ? "" : "<p>所选版本的已知限制：未记录，请在目标设备验证。</p>"}${p.nativeSupport ? `<p>${link(p.nativeSupport.url, p.nativeSupport.text)}</p>` : ""}</details><details id="source-details" class="detail-disclosure"><summary>来源与版本信息</summary><p>构建时快照；启用 JavaScript 后可实时查询。</p><p>latest 发布时间：${escapeHtml(p.publishedAt || "未记录")}</p><p>${escapeHtml(p.license)}</p>${(p.sources || []).map((s) => `<p>${link(s.url, s.label)}</p>`).join("")}</details><details class="detail-disclosure"><summary>原生模块签名说明</summary><p>npm / pnpm 安装原生模块后可能需要 ${link("https://www.npmjs.com/package/ohos-signpost", "ohos-signpost")} 签名；Harmonybrew 的 Bun 已内置签名。请合并现有 postinstall，不要覆盖其他步骤。</p></details><p>安装成功不等于已通过设备验证，请在目标设备测试加载与运行。</p></main>`;
 }
 export async function generateStatic({
   outDir,

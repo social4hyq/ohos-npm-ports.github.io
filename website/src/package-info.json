@@ -1,7 +1,6 @@
 {
   "ast-grep-napi": {
     "kind": "entry",
-    "category": "analysis",
     "keywords": ["代码", "搜索", "AST", "重写"],
     "verification": [],
     "sources": [
@@ -13,7 +12,6 @@
   },
   "bufferutil": {
     "kind": "entry",
-    "category": "native",
     "keywords": ["原生", "WebSocket", "缓冲"],
     "verification": [],
     "sources": [
@@ -25,7 +23,6 @@
   },
   "bun": {
     "kind": "entry",
-    "category": "terminal",
     "keywords": ["运行时", "包管理器", "JavaScript"],
     "verification": [],
     "sources": [
@@ -37,7 +34,6 @@
   },
   "bun-plugin-tailwind": {
     "kind": "entry",
-    "category": "build",
     "keywords": ["样式", "CSS", "Tailwind", "Bun", "插件"],
     "verification": [],
     "sources": [
@@ -49,7 +45,6 @@
   },
   "bun-pty": {
     "kind": "entry",
-    "category": "terminal",
     "keywords": ["终端", "伪终端", "PTY"],
     "verification": [],
     "sources": [
@@ -61,7 +56,6 @@
   },
   "datadog-pprof": {
     "kind": "entry",
-    "category": "analysis",
     "keywords": ["性能", "分析", "采样"],
     "verification": [],
     "sources": [
@@ -73,7 +67,6 @@
   },
   "lightningcss": {
     "kind": "entry",
-    "category": "build",
     "keywords": ["样式", "CSS", "压缩", "转换"],
     "verification": [],
     "sources": [
@@ -85,7 +78,6 @@
   },
   "next": {
     "kind": "entry",
-    "category": "build",
     "keywords": ["前端", "React", "框架", "服务端渲染"],
     "verification": [],
     "sources": [
@@ -97,7 +89,6 @@
   },
   "next-swc-openharmony-arm64": {
     "kind": "platform",
-    "category": "build",
     "keywords": ["前端", "React", "框架", "服务端渲染"],
     "verification": [],
     "entry": "@ohos-npm-ports/next",
@@ -110,7 +101,6 @@
   },
   "nw": {
     "kind": "entry",
-    "category": "testing",
     "keywords": ["浏览器", "桌面", "NW", "桥接"],
     "verification": [],
     "sources": [
@@ -129,7 +119,6 @@
   },
   "nx": {
     "kind": "entry",
-    "category": "build",
     "keywords": ["构建", "monorepo", "工作区"],
     "verification": [],
     "sources": [
@@ -141,7 +130,6 @@
   },
   "opentui-core": {
     "kind": "entry",
-    "category": "terminal",
     "keywords": ["终端", "界面", "TUI"],
     "verification": [],
     "sources": [
@@ -153,7 +141,6 @@
   },
   "opentui-core-openharmony-arm64": {
     "kind": "platform",
-    "category": "terminal",
     "keywords": ["终端", "界面", "TUI"],
     "verification": [],
     "entry": "@ohos-npm-ports/opentui-core",
@@ -166,7 +153,6 @@
   },
   "oven-bun-openharmony-arm64": {
     "kind": "platform",
-    "category": "terminal",
     "keywords": ["运行时", "包管理器", "JavaScript"],
     "verification": [],
     "entry": "@ohos-npm-ports/bun",
@@ -179,7 +165,6 @@
   },
   "oxlint-tsgolint": {
     "kind": "entry",
-    "category": "analysis",
     "keywords": ["代码", "类型检查", "lint"],
     "verification": [],
     "sources": [
@@ -191,7 +176,6 @@
   },
   "parcel-watcher": {
     "kind": "entry",
-    "category": "build",
     "keywords": ["文件", "监听", "构建"],
     "verification": [],
     "sources": [
@@ -203,7 +187,6 @@
   },
   "parcel-watcher-openharmony-arm64": {
     "kind": "platform",
-    "category": "build",
     "keywords": ["文件", "监听", "构建"],
     "verification": [],
     "entry": "@ohos-npm-ports/parcel-watcher",
@@ -216,7 +199,6 @@
   },
   "playwright-core": {
     "kind": "entry",
-    "category": "testing",
     "keywords": ["浏览器", "自动化", "测试"],
     "verification": [],
     "sources": [
@@ -228,7 +210,6 @@
   },
   "playwright-mcp": {
     "kind": "entry",
-    "category": "testing",
     "keywords": ["浏览器", "自动化", "MCP"],
     "verification": [],
     "sources": [
@@ -240,7 +221,6 @@
   },
   "pnpm": {
     "kind": "entry",
-    "category": "terminal",
     "keywords": ["包管理器", "依赖", "安装"],
     "verification": [],
     "sources": [
@@ -252,7 +232,6 @@
   },
   "pnpm-exe.openharmony-arm64": {
     "kind": "platform",
-    "category": "terminal",
     "keywords": ["包管理器", "依赖", "安装"],
     "verification": [],
     "entry": "@ohos-npm-ports/pnpm",
@@ -265,7 +244,6 @@
   },
   "pnpm-openharmony-arm64": {
     "kind": "platform",
-    "category": "unknown",
     "keywords": [],
     "verification": [],
     "sources": [
@@ -277,7 +255,6 @@
   },
   "prisma": {
     "kind": "entry",
-    "category": "data",
     "keywords": ["数据库", "ORM", "迁移"],
     "verification": [],
     "sources": [
@@ -289,7 +266,6 @@
   },
   "prisma-client": {
     "kind": "entry",
-    "category": "data",
     "keywords": ["数据库", "ORM", "客户端"],
     "verification": [],
     "sources": [
@@ -301,7 +277,6 @@
   },
   "prisma-engines": {
     "kind": "tool",
-    "category": "data",
     "keywords": ["数据库", "Prisma", "引擎"],
     "verification": [],
     "sources": [
@@ -320,7 +295,6 @@
   },
   "resvg-resvg-js": {
     "kind": "entry",
-    "category": "graphics",
     "keywords": ["图片", "SVG", "渲染"],
     "verification": [],
     "sources": [
@@ -332,7 +306,6 @@
   },
   "sharp": {
     "kind": "entry",
-    "category": "graphics",
     "keywords": ["图片", "图像", "缩放", "转换"],
     "verification": [],
     "sources": [
@@ -344,7 +317,6 @@
   },
   "sqlite3": {
     "kind": "entry",
-    "category": "data",
     "keywords": ["数据库", "SQLite", "存储"],
     "verification": [],
     "sources": [
@@ -356,7 +328,6 @@
   },
   "tailwindcss-oxide": {
     "kind": "entry",
-    "category": "build",
     "keywords": ["样式", "CSS", "Tailwind"],
     "verification": [],
     "sources": [
@@ -368,7 +339,6 @@
   },
   "tailwindcss-oxide-openharmony-arm64": {
     "kind": "platform",
-    "category": "build",
     "keywords": ["样式", "CSS", "Tailwind"],
     "verification": [],
     "entry": "@ohos-npm-ports/tailwindcss-oxide",
@@ -381,7 +351,6 @@
   },
   "testcafe": {
     "kind": "entry",
-    "category": "testing",
     "keywords": ["浏览器", "测试", "自动化"],
     "verification": [],
     "sources": [
@@ -393,7 +362,6 @@
   },
   "tsrs": {
     "kind": "entry",
-    "category": "analysis",
     "keywords": ["代码", "TypeScript", "语言服务"],
     "verification": [],
     "sources": [
@@ -405,7 +373,6 @@
   },
   "tsrs-openharmony-arm64": {
     "kind": "platform",
-    "category": "analysis",
     "keywords": ["代码", "TypeScript", "语言服务"],
     "verification": [],
     "entry": "@ohos-npm-ports/tsrs",
@@ -418,7 +385,6 @@
   },
   "turbo": {
     "kind": "entry",
-    "category": "build",
     "keywords": ["构建", "monorepo", "缓存"],
     "verification": [],
     "sources": [
@@ -430,7 +396,6 @@
   },
   "typescript": {
     "kind": "entry",
-    "category": "build",
     "keywords": ["编译", "类型检查", "TS"],
     "verification": [],
     "sources": [
@@ -442,7 +407,6 @@
   },
   "typescript-native-preview": {
     "kind": "entry",
-    "category": "build",
     "keywords": ["编译", "类型检查", "原生", "TS"],
     "verification": [],
     "sources": [
@@ -454,7 +418,6 @@
   },
   "typescript-native-preview-openharmony-arm64": {
     "kind": "platform",
-    "category": "build",
     "keywords": ["编译", "类型检查", "原生", "TS"],
     "verification": [],
     "entry": "@ohos-npm-ports/typescript-native-preview",
@@ -467,7 +430,6 @@
   },
   "typescript-openharmony-arm64": {
     "kind": "platform",
-    "category": "build",
     "keywords": ["编译", "类型检查", "TS"],
     "verification": [],
     "entry": "@ohos-npm-ports/typescript",
@@ -480,7 +442,6 @@
   },
   "vite-plus": {
     "kind": "entry",
-    "category": "build",
     "keywords": ["前端", "构建", "格式化", "检查", "Vite"],
     "verification": [],
     "sources": [
@@ -492,7 +453,6 @@
   },
   "yuku-codegen": {
     "kind": "entry",
-    "category": "analysis",
     "keywords": ["代码", "生成"],
     "verification": [],
     "sources": [
@@ -504,7 +464,6 @@
   },
   "yuku-parser": {
     "kind": "entry",
-    "category": "analysis",
     "keywords": ["代码", "解析", "AST"],
     "verification": [],
     "sources": [

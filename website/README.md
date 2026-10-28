@@ -35,11 +35,11 @@ Linux 上已有 Chromium 时，可设置 `PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH=/u
 - `scripts/sync.mjs`：从仓库发现候选包，查询 npm 并生成数据快照。
 - `scripts/static-pages.mjs` / `vite.config.mjs`：静态内容生成、Vue Vapor 编译与 Vite+ 测试配置。
 
-不做排序控件或分页，所有匹配包直接展示。默认展示入口包、辅助工具及未分类包；搜索可以找到平台子包，也可显式按类型和用途筛选。
+不做排序控件或分页，所有匹配包直接展示。默认隐藏通常自动安装的平台子包，搜索和详情直达仍可找到它们。不提供包类型或用途下拉框，普通包不展示维护分类标签；中文用途通过可多值的关键词检索。
 
-搜索与筛选同步到 URL。旧 `?package=包名` 链接继续可用，分享链接可携带精确版本、包管理器和直接/间接依赖类型。目录内打开详情可用返回键关闭，前进键恢复选择；独立页面位于 `packages/<shortName>/`。无需 Router。
+搜索与发布状态同步到 URL；旧 kind/category 参数不再应用。旧 `?package=包名` 链接继续可用，分享链接可携带精确版本、包管理器和直接/间接依赖类型。目录内打开详情可用返回键关闭，前进键恢复选择；独立页面位于 `packages/<shortName>/`。无需 Router。
 
-接入配置支持 npm、pnpm 和 Bun。pnpm 的间接依赖配置写入 `pnpm-workspace.yaml`，npm/Bun 写入 `package.json`；平台子包优先指向经源码确认的入口，不自动生成业务安装命令。资料字段、证据标准及配置来源见 [CONTENT.md](CONTENT.md)。
+接入配置支持 npm、pnpm 和 Bun。pnpm 的间接依赖配置写入 `pnpm-workspace.yaml`，npm/Bun 写入 `package.json`；平台子包优先指向经源码确认的入口，不自动生成业务安装命令。详情默认先呈现版本、安装配置与复制按钮，兼容性、来源和签名排错按需展开，重要安装警告仍直接显示。资料字段、证据标准及配置来源见 [CONTENT.md](CONTENT.md)。
 
 组件全部使用 `<script setup vapor>`，入口使用 `createVaporApp`，不是普通 Vue Virtual DOM 应用。Vue 与编译器通过 lockfile 对齐并锁定 RC；升级时必须重跑浏览器验证。
 

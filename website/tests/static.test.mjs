@@ -35,3 +35,25 @@ test("canonical and metadata respect deployment base and escape attributes", () 
   assert.ok(html.includes("https://example.org/repo/packages/sqlite3/"));
   assert.ok(html.includes('name="description" content="x&quot;&lt;"'));
 });
+
+test("static catalog hides platform internals and normal pages omit maintenance labels", () => {
+  const platform = {
+    name: "@ohos-npm-ports/tailwindcss-oxide-openharmony-arm64",
+    shortName: "tailwindcss-oxide-openharmony-arm64",
+    kind: "platform",
+  };
+  const html = renderCatalog([pkg, platform], "/repo/");
+  assert.ok(html.includes("/repo/packages/sqlite3/"));
+  assert.ok(!html.includes("/repo/packages/tailwindcss-oxide-openharmony-arm64/"));
+  assert.ok(!html.includes("入口包"));
+  assert.ok(!renderPackage(pkg).includes(" · 入口包 · "));
+  assert.ok(renderPackage(platform).includes("平台子包通常由入口自动安装"));
+});
+
+test("static details also put the primary install command before optional information", () => {
+  const html = renderPackage(pkg);
+  assert.ok(html.indexOf("npm install sqlite3") < html.indexOf('id="compatibility-details"'));
+  assert.ok(html.includes('<details id="compatibility-details"'));
+  assert.ok(!html.includes('<details id="compatibility-details" open'));
+  assert.ok(html.includes("其他接入方式"));
+});

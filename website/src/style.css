@@ -1137,15 +1137,6 @@ dialog h2 {
   color: var(--text);
   border-radius: 6px;
 }
-.sidebar > label {
-  display: block;
-  margin-top: 12px;
-}
-.sidebar > select {
-  display: block;
-  width: 100%;
-  margin-block: 6px 20px;
-}
 select {
   max-width: 100%;
   min-height: 44px;
@@ -1155,16 +1146,9 @@ select {
   background: var(--surface);
   color: var(--text);
 }
-.kind-badge,
 .static-link {
   font-size: 12px;
   color: var(--muted);
-}
-.kind-badge {
-  display: inline-block;
-  padding: 1px 6px;
-  background: var(--soft);
-  border-radius: 4px;
 }
 .static-link {
   display: inline-block;
@@ -1178,18 +1162,6 @@ select {
   min-width: 44px;
   min-height: 44px;
 }
-.compatibility {
-  margin-block: 18px;
-  padding: 16px;
-  background: var(--soft);
-  border-radius: 8px;
-  font-size: 14px;
-}
-.compatibility p {
-  margin-top: 8px;
-  overflow-wrap: anywhere;
-}
-.compatibility a,
 .dialog-note a,
 .empty a,
 .warning a {
@@ -1290,9 +1262,6 @@ dialog {
   .sidebar {
     display: block;
   }
-  .sidebar > select {
-    width: 100%;
-  }
   .copy-row {
     width: 44px;
     height: 44px;
@@ -1316,9 +1285,6 @@ dialog {
 }
 .live-status .button {
   flex-shrink: 0;
-}
-.kind-badge {
-  margin-inline-start: 6px;
 }
 .signing-help {
   margin-top: 18px;
@@ -1350,4 +1316,27 @@ dialog {
     flex-direction: column;
     gap: 10px;
   }
+}
+
+.dialog-head h2 {
+  margin: 0;
+}
+.detail-disclosure {
+  margin-top: 16px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+  font-size: 14px;
+}
+.detail-disclosure summary {
+  min-height: 44px;
+  cursor: pointer;
+  font-weight: 600;
+}
+.detail-disclosure p,
+.detail-disclosure > a {
+  margin-top: 8px;
+  overflow-wrap: anywhere;
+}
+.detail-disclosure a {
+  text-decoration: underline;
 }
