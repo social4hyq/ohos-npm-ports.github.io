@@ -658,10 +658,35 @@ onUnmounted(() => {
         该版本已废弃：{{ deprecated }}
       </p>
       <div id="detail-links" class="detail-links">
-        <a :href="`https://www.npmjs.com/package/${selected.name}`">npm 包 ↗</a
-        ><a v-if="selected.upstream" :href="`https://www.npmjs.com/package/${selected.upstream}`"
+        <a :href="`https://www.npmjs.com/package/${selected.name}`">npm 包 ↗</a>
+        <a v-if="selected.upstream" :href="`https://www.npmjs.com/package/${selected.upstream}`"
           >上游包 ↗</a
         >
+        <button
+          id="share-detail"
+          class="quiet-share"
+          type="button"
+          aria-label="复制分享链接"
+          title="复制分享链接"
+          @click="copy(packageUrl(selected))"
+        >
+          <svg
+            width="15"
+            height="15"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.6"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            aria-hidden="true"
+          >
+            <path
+              d="M10 13a5 5 0 0 0 7 .5l3-3a5 5 0 0 0-7-7l-2 2M14 11a5 5 0 0 0-7-.5l-3 3a5 5 0 0 0 7 7l2-2"
+            />
+          </svg>
+          分享
+        </button>
       </div>
       <p class="warning" v-for="item in notes" :key="item.url">
         {{ item.text }} <a :href="item.url">来源 ↗</a>
@@ -741,16 +766,41 @@ onUnmounted(() => {
           'mode-tab-' + mode + (activeManager ? ' manager-tab-' + activeManager : '')
         "
       >
-        <p class="guide-file">{{ guide.file || "请先阅读接入说明" }}</p>
-        <pre id="install-code" tabindex="0">{{ code || guide.note }}</pre>
+        <div class="code-frame">
+          <div class="code-toolbar">
+            <p class="guide-file">{{ guide.file || "接入说明" }}</p>
+            <button
+              id="copy-detail"
+              class="copy-code"
+              type="button"
+              :disabled="!code"
+              :aria-label="mode === 'alias' ? '复制安装命令' : '复制配置'"
+              :title="mode === 'alias' ? '复制安装命令' : '复制配置'"
+              @click="copy(code)"
+            >
+              <svg
+                width="15"
+                height="15"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.6"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                aria-hidden="true"
+              >
+                <rect x="8" y="8" width="12" height="12" rx="2" />
+                <path d="M16 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h3" />
+              </svg>
+              复制
+            </button>
+          </div>
+          <pre id="install-code" tabindex="0">{{ code || guide.note }}</pre>
+        </div>
         <p v-if="code" class="dialog-note">{{ guide.note }}</p>
         <p v-if="detailMessage.includes('失败')" class="dialog-note">
           实时版本查询暂不可用，当前使用已有数据。
         </p>
-        <button id="copy-detail" class="button primary" :disabled="!code" @click="copy(code)">
-          {{ mode === "alias" ? "复制安装命令" : "复制配置" }}
-        </button>
-        <button class="button" @click="copy(packageUrl(selected))">复制分享链接</button>
       </section>
       <p class="sr-only" role="status">{{ detailMessage }}</p>
     </template>
