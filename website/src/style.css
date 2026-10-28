@@ -1306,3 +1306,48 @@ dialog {
     padding: 18px;
   }
 }
+.live-status {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 28px;
+  font-size: 14px;
+}
+.live-status .button {
+  flex-shrink: 0;
+}
+.kind-badge {
+  margin-inline-start: 6px;
+}
+.signing-help {
+  margin-top: 18px;
+  font-size: 14px;
+}
+.signing-help summary {
+  min-height: 44px;
+  cursor: pointer;
+}
+.signing-help pre {
+  max-width: 100%;
+  overflow-x: auto;
+  padding: 10px;
+  background: var(--soft);
+}
+@media (max-width: 760px) {
+  .nav nav {
+    width: auto;
+  }
+  .nav nav.expanded {
+    width: 100%;
+  }
+  .hero-description {
+    margin-top: 16px;
+    line-height: 1.7;
+  }
+  .live-status {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 10px;
+  }
+}

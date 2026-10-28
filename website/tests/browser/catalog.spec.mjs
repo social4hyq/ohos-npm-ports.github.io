@@ -548,3 +548,20 @@ test("queued dialog close events cannot dismiss a newly restored forward entry",
     await expect(page).toHaveURL((url) => url.searchParams.get("package") === fixtures[0].name);
   }
 });
+
+test("real package instructions and signing help fit the dialog at 320px", async ({
+  page,
+}, testInfo) => {
+  await page.goto("./?package=sqlite3&manager=pnpm&dependency=indirect");
+  await expect(page.locator("#detail-title")).toHaveText("sqlite3");
+  await expect(page.locator("#install-code")).toContainText("overrides:");
+  await page.locator("#detail").screenshot({ path: testInfo.outputPath("package-detail.png") });
+  await page.setViewportSize({ width: 320, height: 844 });
+  await page.locator(".signing-help summary").click();
+  expect(await page.locator("#detail").evaluate((el) => el.scrollWidth <= el.clientWidth)).toBe(
+    true,
+  );
+  await page
+    .locator("#detail")
+    .screenshot({ path: testInfo.outputPath("package-signing-mobile.png") });
+});
