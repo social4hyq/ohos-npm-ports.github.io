@@ -74,12 +74,12 @@ test("verification cannot leak from another version", () => {
   assert.equal(evidenceFor(p, "1").length, 1);
 });
 
-test("curated records require sources, valid categories and safe entry associations", async () => {
+test("curated records require sources, keywords and safe entry associations", async () => {
   const { default: info } = await import("../src/package-info.json", { with: { type: "json" } });
-  const { categories, kindLabels } = await import("../src/catalog.mjs");
   for (const [name, record] of Object.entries(info)) {
-    assert.ok(kindLabels[record.kind], name);
-    assert.ok(categories[record.category], name);
+    assert.ok(["entry", "platform", "tool", "unknown"].includes(record.kind), name);
+    assert.ok(Array.isArray(record.keywords), name);
+    assert.equal(Object.hasOwn(record, "category"), false, name);
     assert.ok(record.sources.length, name);
     for (const source of record.sources) assert.ok(source.url.startsWith("https://"), name);
     if (record.entry) {
@@ -92,4 +92,31 @@ test("curated records require sources, valid categories and safe entry associati
 });
 test("malformed percent encoded paths fall back safely", () => {
   assert.equal(readRoute("https://example.org/packages/%ZZ/").package, "");
+});
+
+test("search has no type or purpose facets; platform packages are revealed only by a query", () => {
+  const current = enrichPackage(pkg);
+  const platform = enrichPackage({ name: "@ohos-npm-ports/tailwindcss-oxide-openharmony-arm64" });
+  assert.deepEqual(searchPackages([current, platform], { kind: "all", category: "build" }), [
+    current,
+  ]);
+  assert.deepEqual(
+    searchPackages([current, platform], { query: "数据库", kind: "platform", category: "testing" }),
+    [current],
+  );
+  assert.deepEqual(searchPackages([current, platform], { query: "tailwind" }), [platform]);
+  assert.equal(installGuide(platform).code, null);
+});
+
+test("obsolete facet links retain useful context without applying hidden filters", () => {
+  const old =
+    "https://example.org/?package=sqlite3&version=5.1.7-7&manager=pnpm&q=数据库&status=active&kind=platform&category=testing";
+  const state = readRoute(old);
+  assert.equal(Object.hasOwn(state, "kind"), false);
+  assert.equal(Object.hasOwn(state, "category"), false);
+  const url = routeUrl(state, old);
+  assert.equal(url.searchParams.has("kind"), false);
+  assert.equal(url.searchParams.has("category"), false);
+  assert.equal(readRoute(url).query, "数据库");
+  assert.equal(readRoute(url).version, "5.1.7-7");
 });

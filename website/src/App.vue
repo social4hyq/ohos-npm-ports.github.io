@@ -13,8 +13,6 @@ import {
   searchPackages,
   readRoute,
   routeUrl,
-  kindLabels,
-  categories,
   statusLabels,
 } from "./catalog.mjs";
 const registry = createRegistryClient();
@@ -33,9 +31,7 @@ const maintainers = ref(catalogMaintainers({})),
   toast = ref(""),
   dialog = ref(null);
 const query = ref(initial.query),
-  status = ref(initial.status),
-  kind = ref(initial.kind),
-  category = ref(initial.category);
+  status = ref(initial.status);
 const version = ref(initial.version),
   manager = ref(initial.manager),
   dependency = ref(initial.dependency);
@@ -52,8 +48,6 @@ const filtered = computed(() =>
   searchPackages(packages.value, {
     query: query.value,
     status: status.value,
-    kind: kind.value,
-    category: category.value,
   }),
 );
 const guide = computed(() =>
@@ -114,8 +108,6 @@ function routeState(pkg = selected.value) {
   return {
     query: query.value,
     status: status.value,
-    kind: kind.value,
-    category: category.value,
     package: pkg?.name || "",
     version: pkg ? version.value : "",
     manager: manager.value,
@@ -126,7 +118,7 @@ function syncUrl() {
   if (ready.value && !routing)
     history.replaceState(history.state, "", routeUrl(routeState(), base));
 }
-watch([query, status, kind, category, version, manager, dependency], syncUrl);
+watch([query, status, version, manager, dependency], syncUrl);
 function packageUrl(pkg) {
   return routeUrl({ ...routeState(pkg), version: version.value }, base).href;
 }
@@ -139,8 +131,6 @@ function scrollToCatalog() {
 function clear() {
   query.value = "";
   status.value = "all";
-  kind.value = "default";
-  category.value = "all";
 }
 async function refresh(force = false) {
   if (refreshing.value) return;
@@ -297,8 +287,6 @@ async function restoreRoute() {
   routing = true;
   query.value = state.query;
   status.value = state.status;
-  kind.value = state.kind;
-  category.value = state.category;
   manager.value = state.manager;
   dependency.value = state.dependency;
   await nextTick();
@@ -469,20 +457,6 @@ onUnmounted(() => {
       </div>
       <div class="catalog-layout">
         <aside class="sidebar">
-          <label for="kind">包类型</label>
-          <select id="kind" v-model="kind">
-            <option value="default">入口与工具（默认）</option>
-            <option value="all">全部类型</option>
-            <option v-for="(label, value) in kindLabels" :key="value" :value="value">
-              {{ label }}
-            </option>
-          </select>
-          <label for="category">用途</label
-          ><select id="category" v-model="category">
-            <option v-for="(label, value) in categories" :key="value" :value="value">
-              {{ label }}
-            </option>
-          </select>
           <h3>发布状态</h3>
           <div id="filters" class="filters" role="group" aria-label="按发布状态筛选">
             <button
@@ -518,7 +492,7 @@ onUnmounted(() => {
                 id="search"
                 v-model="query"
                 type="search"
-                placeholder="搜索包名、上游包或描述…"
+                placeholder="搜索包名、上游包或中文用途…"
                 aria-label="搜索包"
             /></label>
           </div>
@@ -573,7 +547,6 @@ onUnmounted(() => {
                     >
                       {{ pkg.shortName }}
                     </button>
-                    <span class="kind-badge">{{ kindLabels[pkg.kind] }}</span>
                     <p class="package-description">{{ pkg.description }}</p>
                     <p class="upstream">{{ pkg.upstream ? `↳ ${pkg.upstream}` : pkg.name }}</p>
                     <a class="static-link" :href="staticUrl(pkg)">独立详情页 ↗</a>
@@ -655,13 +628,11 @@ onUnmounted(() => {
   >
     <template v-if="selected">
       <div class="dialog-head">
-        <span class="eyebrow">PACKAGE DETAILS</span
-        ><button id="close-detail" class="icon-button" aria-label="关闭包详情" @click="closeDetail">
+        <h2 id="detail-title">{{ selected.shortName }}</h2>
+        <button id="close-detail" class="icon-button" aria-label="关闭包详情" @click="closeDetail">
           ×
         </button>
       </div>
-      <p role="status">{{ detailMessage }}</p>
-      <h2 id="detail-title">{{ selected.shortName }}</h2>
       <p id="detail-description">{{ selected.description }}</p>
       <p id="detail-warning" class="warning" :hidden="!deprecated">
         该版本已废弃：{{ deprecated }}
@@ -670,12 +641,11 @@ onUnmounted(() => {
         <a :href="`https://www.npmjs.com/package/${selected.name}`">npm 包 ↗</a
         ><a v-if="selected.upstream" :href="`https://www.npmjs.com/package/${selected.upstream}`"
           >上游包 ↗</a
-        ><a
-          v-if="selected.directories[0]"
-          :href="`https://github.com/ohos-npm-ports/ohos-npm-ports/tree/main/${selected.directories[0].split('/').slice(0, 2).join('/')}`"
-          >构建与补丁 ↗</a
-        ><span v-if="selected.license">{{ selected.license }}</span>
+        >
       </div>
+      <p class="warning" v-for="item in notes" :key="item.url">
+        {{ item.text }} <a :href="item.url">来源 ↗</a>
+      </p>
       <div class="version-control">
         <label for="version">发布版本</label
         ><select id="version" v-model="version" @change="versionChanged = true">
@@ -691,31 +661,7 @@ onUnmounted(() => {
           </option>
         </select>
       </div>
-      <section class="compatibility" aria-label="兼容性与限制">
-        <h3>兼容性与限制</h3>
-        <p>{{ kindLabels[selected.kind] }} · 发布状态：{{ labels[selected.status] }}</p>
-        <p>
-          包声明的运行时：{{ selected.runtime || "未记录" }} · CPU：{{
-            selected.architecture || "未记录"
-          }}
-        </p>
-        <p v-if="!verification.length">
-          所选版本的真机验证：未记录。npm 发布和网站 CI 不代表真机验收通过。
-        </p>
-        <p v-for="item in verification" :key="item.url">
-          <a :href="item.url"
-            >{{ item.version }} · {{ item.environment }} · {{ item.date }} · {{ item.result }} ↗</a
-          >
-        </p>
-        <p v-for="item in notes" :key="item.url">{{ item.text }} <a :href="item.url">来源 ↗</a></p>
-        <p v-if="!notes.length">所选版本的已知限制：未记录，请查阅移植说明并在目标设备测试。</p>
-        <p v-for="source in selected.sources || []" :key="source.url">
-          <a :href="source.url">{{ source.label }} ↗</a>
-        </p>
-        <p v-if="selected.nativeSupport">
-          <a :href="selected.nativeSupport.url">{{ selected.nativeSupport.text }} ↗</a>
-        </p>
-      </section>
+
       <p v-if="selected.kind === 'platform'" class="warning">
         平台子包通常由入口包自动安装，不需要直接加入业务依赖。
         <a
@@ -725,11 +671,7 @@ onUnmounted(() => {
           >查看对应入口包 → {{ selected.entry }}</a
         >
       </p>
-      <p class="dialog-note">
-        当前 latest 发布时间：{{
-          selected.publishedAt ? new Date(selected.publishedAt).toLocaleString("zh-CN") : "未记录"
-        }}；查询时间见详情顶部，目录快照时间见首页。
-      </p>
+
       <div id="install-modes" class="install-modes">
         <label for="manager">包管理器</label
         ><select id="manager" v-model="manager">
@@ -745,11 +687,55 @@ onUnmounted(() => {
       </div>
       <p class="guide-file">{{ guide.file || "请先阅读接入说明" }}</p>
       <pre id="install-code" tabindex="0">{{ code || guide.note }}</pre>
-      <p class="dialog-note">{{ guide.note }}</p>
+      <p v-if="code" class="dialog-note">{{ guide.note }}</p>
+      <p v-if="detailMessage.includes('失败')" class="dialog-note">
+        实时版本查询暂不可用，当前使用已有数据。
+      </p>
       <button id="copy-detail" class="button primary" :disabled="!code" @click="copy(code)">
         {{ dependency === "direct" ? "复制安装命令" : "复制配置" }}
       </button>
       <button class="button" @click="copy(packageUrl(selected))">复制分享链接</button>
+      <details id="compatibility-details" class="detail-disclosure">
+        <summary>兼容性与限制</summary>
+        <p>发布状态：{{ labels[selected.status] }}</p>
+        <p>
+          包声明的运行时：{{ versionInfo?.runtime || "未记录" }} · CPU：{{
+            versionInfo?.architecture || "未记录"
+          }}
+        </p>
+        <p v-if="!verification.length">
+          所选版本的真机验证：未记录。npm 发布和网站 CI 不代表真机验收通过。
+        </p>
+        <p v-for="item in verification" :key="item.url">
+          <a :href="item.url"
+            >{{ item.version }} · {{ item.environment }} · {{ item.date }} · {{ item.result }} ↗</a
+          >
+        </p>
+        <p v-if="!notes.length">所选版本的已知限制：未记录，请查阅移植说明并在目标设备测试。</p>
+        <p v-if="selected.nativeSupport">
+          <a :href="selected.nativeSupport.url">{{ selected.nativeSupport.text }} ↗</a>
+        </p>
+      </details>
+      <details id="source-details" class="detail-disclosure">
+        <summary>来源与版本信息</summary>
+        <p role="status">{{ detailMessage }}</p>
+        <p>npm 发布状态不代表真机验收；实时查询失败时保留快照。</p>
+        <p class="dialog-note">
+          当前 latest 发布时间：{{
+            selected.publishedAt
+              ? new Date(selected.publishedAt).toLocaleString("zh-CN")
+              : "未记录"
+          }}；目录快照时间见首页。
+        </p>
+        <p v-for="source in selected.sources || []" :key="source.url">
+          <a :href="source.url">{{ source.label }} ↗</a>
+        </p>
+        <a
+          v-if="selected.directories[0]"
+          :href="`https://github.com/ohos-npm-ports/ohos-npm-ports/tree/main/${selected.directories[0].split('/').slice(0, 2).join('/')}`"
+          >构建与补丁 ↗</a
+        ><span v-if="selected.license">{{ selected.license }}</span>
+      </details>
       <details v-if="manager !== 'bun'" class="signing-help">
         <summary>原生模块加载被拒绝？查看签名配置</summary>
         <p>
@@ -763,15 +749,7 @@ onUnmounted(() => {
         <pre>{ "scripts": { "postinstall": "ohos-signpost" } }</pre>
         <a href="https://www.npmjs.com/package/ohos-signpost">工具说明 ↗</a>
       </details>
-      <p class="dialog-note">
-        {{
-          manager === "bun"
-            ? "Harmonybrew 的 Bun 已内置签名。"
-            : "npm / pnpm 安装原生模块后可能需要 ohos-signpost；检查包说明，将签名步骤合并到现有 postinstall。"
-        }}
-        <a href="https://www.npmjs.com/package/ohos-signpost">签名工具与配置说明 ↗</a>
-        安装成功后仍需验证加载与运行。
-      </p>
+      <p class="dialog-note">安装成功不等于已通过设备验证，请在目标设备测试加载与运行。</p>
     </template>
   </dialog>
 

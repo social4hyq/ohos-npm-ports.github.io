@@ -2,8 +2,8 @@
 
 `src/package-info.json` 是网站的人工维护资料，不改变 ports 构建或 npm 发布。
 
-- `kind`：entry（用户入口）、platform（自动引用的平台槽位）、tool（辅助工具）、unknown。默认隐藏平台槽位，搜索可找到它们。
-- `category`、`keywords`：用途与中文检索词。以源码、包描述为依据，不等于兼容承诺。
+- `kind`：仅供内部安装判断使用。platform（平台槽位）默认不进入普通列表，搜索和直达链接仍可找到；已确认的特殊包使用 manual 安装策略。页面不展示维护分类标签。
+- `keywords`：中文用途及同义检索词，一个包可有多个用途。以源码、包描述为依据，不等于兼容承诺；不维护单选用途分类。
 - `entry`：平台槽位的完整入口包名。必须有 loader / optionalDependencies 来源，不能只按名字猜；没有确认关系就不填。
 - `sources`：资料来源，使用固定 commit 的源码链接，或 npm 包页面。更新资料时复核来源仍支持相关表述。
 - `notes`：`text`、`url`、可选的精确 `version`。版本特有的限制必须带版本，避免误套到其他发布。
@@ -24,7 +24,9 @@
 
 ## 静态页面和缓存
 
-构建插件以同一包数据、安装生成器输出首页和 `packages/<shortName>/index.html`，无 JavaScript 可读。启用 JavaScript 后由 Vue 增强为交互目录。兼容旧 `?package=` 链接；版本、包管理器、依赖类型和筛选保存在查询参数。
+构建插件以同一包数据、安装生成器输出首页和 `packages/<shortName>/index.html`，无 JavaScript 可读。启用 JavaScript 后由 Vue 增强为交互目录。兼容旧 `?package=` 链接；版本、包管理器、依赖类型、搜索和发布状态保存在查询参数。旧 kind/category 参数忽略，不应用隐藏筛选；新生成的链接会移除它们。
+
+交互详情和静态详情都以安装指引为主，兼容性、来源及签名排错默认折叠。废弃、平台安装提醒和有证据的已知限制直接显示，不能随普通元信息一起隐藏。
 
 `SITE_ORIGIN` 可覆盖 canonical 来源，默认按 `GITHUB_REPOSITORY` 的 owner 生成 GitHub Pages 域名；路径由现有 `pagesBase` 统一决定。构建同时产生 sitemap 和 robots。
 

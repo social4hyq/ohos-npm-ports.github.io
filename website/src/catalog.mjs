@@ -1,21 +1,4 @@
 import info from "./package-info.json" with { type: "json" };
-export const kindLabels = {
-  entry: "入口包",
-  platform: "平台子包",
-  tool: "辅助工具",
-  unknown: "未分类",
-};
-export const categories = {
-  all: "全部用途",
-  data: "数据库",
-  build: "构建与编译",
-  terminal: "终端与运行时",
-  graphics: "图片与图形",
-  testing: "测试与浏览器",
-  analysis: "代码分析",
-  native: "原生模块",
-  unknown: "未分类",
-};
 export const statusLabels = {
   all: "全部发布状态",
   active: "latest 未废弃",
@@ -26,7 +9,6 @@ export function enrichPackage(pkg) {
   const curated = info[pkg.name.replace("@ohos-npm-ports/", "")] || {};
   return {
     kind: /(?:openharmony-arm64|linux-arm64-ohos)$/.test(pkg.name) ? "platform" : "unknown",
-    category: "unknown",
     keywords: [],
     notes: [],
     verification: [],
@@ -85,20 +67,10 @@ export function installGuide(
     note: `合并到项目根目录的现有配置，不要覆盖其他字段；然后执行 ${manager} install。仅用于间接依赖。`,
   };
 }
-export function searchPackages(
-  packages,
-  { query = "", status = "all", kind = "default", category = "all" } = {},
-) {
+export function searchPackages(packages, { query = "", status = "all" } = {}) {
   const q = query.trim().toLowerCase();
   return packages
-    .filter(
-      (p) =>
-        (status === "all" || p.status === status) &&
-        (category === "all" || p.category === category) &&
-        (kind === "all" || kind === "default"
-          ? kind === "all" || !!q || p.kind !== "platform"
-          : p.kind === kind),
-    )
+    .filter((p) => (status === "all" || p.status === status) && (q || p.kind !== "platform"))
     .map((pkg) => ({
       pkg,
       rank: q
@@ -129,18 +101,16 @@ export function readRoute(input) {
     dependency: allow(p.get("dependency"), ["direct", "indirect"], "direct"),
     query: p.get("q") || "",
     status: allow(p.get("status"), Object.keys(statusLabels), "all"),
-    kind: allow(p.get("kind"), ["default", "all", ...Object.keys(kindLabels)], "default"),
-    category: allow(p.get("category"), Object.keys(categories), "all"),
   };
 }
 export function routeUrl(state, base) {
   const url = new URL(base);
+  url.searchParams.delete("kind");
+  url.searchParams.delete("category");
   const defaults = {
     manager: "npm",
     dependency: "direct",
     status: "all",
-    kind: "default",
-    category: "all",
   };
   for (const [key, alias] of Object.entries({
     package: "package",
@@ -149,8 +119,6 @@ export function routeUrl(state, base) {
     dependency: "dependency",
     query: "q",
     status: "status",
-    kind: "kind",
-    category: "category",
   })) {
     if (state[key] && state[key] !== defaults[key]) url.searchParams.set(alias, state[key]);
     else url.searchParams.delete(alias);

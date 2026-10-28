@@ -499,6 +499,7 @@ test("mobile navigation keeps the guide accessible and touch targets usable", as
     page.getByRole("navigation", { name: "主导航" }).getByRole("link", { name: /使用指南/ }),
   ).toBeVisible();
   await page.getByLabel("查看 tool-00 包详情").click();
+  await page.locator("#compatibility-details summary").click();
   await expect(page.locator("#detail")).toContainText("真机验证：未记录");
   const box = await page.locator("#close-detail").boundingBox();
   expect(box.width).toBeGreaterThanOrEqual(44);
@@ -564,4 +565,83 @@ test("real package instructions and signing help fit the dialog at 320px", async
   await page
     .locator("#detail")
     .screenshot({ path: testInfo.outputPath("package-signing-mobile.png") });
+});
+
+test("catalog discovery needs no type or purpose controls, including old facet links", async ({
+  page,
+}) => {
+  const packages = [
+    { ...fixtures[0], name: "@ohos-npm-ports/sqlite3", shortName: "sqlite3", upstream: "sqlite3" },
+    {
+      ...fixtures[1],
+      name: "@ohos-npm-ports/unknown-openharmony-arm64",
+      shortName: "unknown-openharmony-arm64",
+      upstream: null,
+    },
+  ];
+  await page.route("**/data.json", (route) => route.fulfill({ json: { packages } }));
+  await page.goto("./?q=数据库&kind=platform&category=testing");
+  await expect(page.locator("#kind, #category, .kind-badge")).toHaveCount(0);
+  await expect(page.locator(".package-name")).toHaveText("sqlite3");
+  await page.getByLabel("搜索包", { exact: true }).fill("unknown-openharmony");
+  await expect(page.locator(".package-name")).toHaveText("unknown-openharmony-arm64");
+  await page.getByLabel("搜索包", { exact: true }).fill("");
+  await expect(page.locator(".package-name")).toHaveText("sqlite3");
+});
+
+test("package details lead with installation and disclose secondary information on demand", async ({
+  page,
+}, testInfo) => {
+  await fixture(page);
+  await page.getByLabel("查看 tool-00 包详情").click();
+  await expect(page.locator("#install-code")).toBeVisible();
+  await expect(page.locator("#copy-detail")).toBeVisible();
+  await expect(page.locator("#compatibility-details")).not.toHaveAttribute("open", "");
+  await expect(page.locator("#source-details")).not.toHaveAttribute("open", "");
+  await expect(page.locator("#detail")).not.toContainText("未分类");
+  const above = await page.evaluate(
+    () =>
+      document
+        .getElementById("install-code")
+        .compareDocumentPosition(document.getElementById("compatibility-details")) &
+      Node.DOCUMENT_POSITION_FOLLOWING,
+  );
+  expect(above).toBeTruthy();
+  await page.locator("#compatibility-details summary").click();
+  await expect(page.getByText(/所选版本的真机验证：未记录/)).toBeVisible();
+  await page.locator("#compatibility-details summary").click();
+  await page.locator("#source-details summary").click();
+  await expect(page.locator("#source-details")).toContainText("快照");
+  await page.locator("#source-details summary").click();
+  await page.locator("#detail").screenshot({ path: testInfo.outputPath("simple-detail.png") });
+});
+
+test("known limitations remain visible without opening secondary detail sections", async ({
+  page,
+}) => {
+  await page.route("**/data.json", (route) =>
+    route.fulfill({
+      json: {
+        packages: [
+          {
+            ...fixtures[0],
+            name: "@ohos-npm-ports/nw",
+            shortName: "nw",
+            upstream: "nw",
+            version: "0.119.2-1",
+            versions: [{ version: "0.119.2-1", tags: ["latest"] }],
+          },
+        ],
+      },
+    }),
+  );
+  await page.goto("./?package=nw");
+  await expect(page.locator("#detail-title")).toHaveText("nw");
+  await expect(
+    page.locator("#detail .warning").filter({ hasText: "不是原生 NW.js 运行时" }),
+  ).toContainText("不是原生 NW.js 运行时");
+  await expect(
+    page.locator("#detail .warning").filter({ hasText: "不是原生 NW.js 运行时" }),
+  ).toBeVisible();
+  await expect(page.locator("#compatibility-details")).not.toHaveAttribute("open", "");
 });

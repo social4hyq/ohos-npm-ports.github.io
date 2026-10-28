@@ -19,7 +19,6 @@ export function normalizePackage(metadata, source = {}) {
   const retained = Object.fromEntries(
     [
       "kind",
-      "category",
       "keywords",
       "notes",
       "verification",
